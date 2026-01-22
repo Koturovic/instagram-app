@@ -2,17 +2,7 @@
 
 Replika društvene mreže Instagram implementirana kao mikroservisna arhitektura sa 5 nezavisnih servisa.
 
----
 
-## 📋 Sadržaj
-
-1. [Arhitektura Aplikacije](#-arhitektura-aplikacije)
-2. [Tok Izvršavanja Funkcionalnosti](#-tok-izvršavanja-funkcionalnosti)
-3. [Uputstvo za Pokretanje](#-uputstvo-za-pokretanje)
-4. [Poboljšanja](#-poboljšanja)
-5. [Članovi Tima](#-članovi-tima)
-
----
 
 ## 🏗️ Arhitektura Aplikacije
 
