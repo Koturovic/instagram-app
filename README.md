@@ -1,4 +1,4 @@
-# Instagram Replica - Projekatni Zadatak
+# Instagram Replika - Projektni Zadatak
 
 Replika društvene mreže Instagram implementirana kao mikroservisna arhitektura sa 5 nezavisnih servisa.
 
