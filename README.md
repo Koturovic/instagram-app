@@ -58,7 +58,7 @@ Aplikacija je implementirana kao **mikroservisna arhitektura** sa 5 nezavisnih s
 
 **Funkcionalnosti**:
 - Laјkovanje/otpoziv laјka
-- Komentarisanje objava
+- Komentarisanje objavaa
 - Ažuriranje i brisanje komentara
 - Brojači (likes, comments)
 
