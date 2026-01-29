@@ -1,0 +1,69 @@
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# Lokalne konfiguracije sa tajnama
+**/application-local.properties
+
+# Build files
+*.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Database
+*.db
+*.sqlite
+
+# Uploads
+uploads/
+post-uploads/
+
+# Docker (auth-service – za sada ne pushujemo)
+services/auth-service/Dockerfile
+services/auth-service/.dockerignore
+docker-compose.override.yml
+
+# Node modules (ako ima frontend)
+node_modules/
+npm-debug.log
+
+# Compiled files
+*.class
+*.war
+*.ear
