@@ -111,15 +111,6 @@ Svi servisi komuniciraju preko **synchronous REST API** poziva:
 
 ---
 
-##  Pokretanje auth-service
-
-1. **Kloniraj repo** i uđi u projekat.
-2. **PostgreSQL** – pokreni bazu (npr. Docker: `docker run -d -p 5433:5432 -e POSTGRES_DB=auth_db -e POSTGRES_USER=auth_user -e POSTGRES_PASSWORD=auth_password postgres:16-alpine`).
-3. **Pokretanje** – iz `services/auth-service`: `./mvnw spring-boot:run`. Aplikacija je na `http://localhost:8080`.  
-   **API:** `POST /api/v1/auth/register` (JSON: firstName, lastName, email, password), `POST /api/v1/auth/login` (JSON: email, password). Odgovor: `{ "token": "..." }`.
-
----
-
 ## 🔄 Tok Izvršavanja Funkcionalnosti
 
 ### 1. Registracija i Prijava Korisnika
