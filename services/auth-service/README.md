@@ -45,7 +45,7 @@ Servis se podiže na **http://localhost:8080**.
 
 | Metoda | Putanja | Opis |
 |--------|---------|------|
-| POST | `/api/v1/auth/register` | Registracija. Body (JSON): `firstName`, `lastName`, `email`, `password`. Odgovor: `{ "token": "..." }`. |
+| POST | `/api/v1/auth/register` | Registracija. Body (JSON): `firstName`, `lastName`, `username`, `email`, `password`. Odgovor: `{ "token": "..." }`. |
 | POST | `/api/v1/auth/login` | Login. Body (JSON): `email`, `password`. Odgovor: `{ "token": "..." }`. |
 
 Za zaštićene zahteve: header **`Authorization: Bearer <token>`**.
@@ -60,7 +60,7 @@ Za zaštićene zahteve: header **`Authorization: Bearer <token>`**.
 ```bash
 curl -X POST http://localhost:8080/api/v1/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"firstName":"Ime","lastName":"Prezime","email":"test@example.com","password":"lozinka123"}'
+  -d '{"firstName":"Ime","lastName":"Prezime","username":"imeprezime","email":"test@example.com","password":"lozinka123"}'
 ```
 
 **Login:**

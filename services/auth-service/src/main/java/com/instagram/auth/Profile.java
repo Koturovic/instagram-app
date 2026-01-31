@@ -3,7 +3,9 @@ package com.instagram.auth;
 import jakarta.persistence.*;
 import lombok.*;
 
-@Entity   // jedan Profile (objekat) = jedan red u bazi; 1 User ima 1 Profile (veza 1:1)
+import java.time.Instant;
+
+@Entity
 @Table(name = "profiles", indexes = {
 	@Index(name = "idx_user_id", columnList = "user_id")
 })
@@ -22,13 +24,20 @@ public class Profile {
 	@JoinColumn(name = "user_id", unique = true, nullable = false)
 	private User user;
 
-	@Column(name = "user_name",nullable = false,unique = true)
+	@Column(name = "user_name", nullable = false, unique = true)
 	private String username;
 
 	@Column(name = "is_private", nullable = false)
 	@Builder.Default
 	private Boolean isPrivate = false;
 
+	@Column(name = "created_at", nullable = false, updatable = false)
+	private Instant createdAt;
 
-
+	@PrePersist
+	protected void onCreate() {
+		if (createdAt == null) {
+			createdAt = Instant.now();
+		}
+	}
 }
