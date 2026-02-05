@@ -7,7 +7,7 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "profiles", indexes = {
-	@Index(name = "idx_user_id", columnList = "user_id")
+		@Index(name = "idx_user_id", columnList = "user_id")
 })
 @Getter
 @Setter
@@ -30,6 +30,9 @@ public class Profile {
 	@Column(name = "is_private", nullable = false)
 	@Builder.Default
 	private Boolean isPrivate = false;
+
+	@Column(name = "profile_image_url")
+	private String profileImageUrl;
 
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
