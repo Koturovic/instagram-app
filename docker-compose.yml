@@ -1,0 +1,70 @@
+services:
+  
+  # PostgreSQL za auth-service
+  
+  postgres-auth:
+    image: postgres:16-alpine
+    container_name: instagram-postgres-auth
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-auth-data:/var/lib/postgresql/data
+    networks:
+      - instagram-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  
+  # auth-service (Spring Boot)
+  
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: instagram-auth-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-auth:5432/auth_db
+      SPRING_DATASOURCE_USERNAME: auth_user
+      SPRING_DATASOURCE_PASSWORD: auth_password
+      JWT_SECRET: ${JWT_SECRET:-ZGV2LXNlY3JldC1taW4tMzItYnl0ZXMtY2hhbmdlLW1lLTEy}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-3600000}
+    ports:
+      - "8080:8080"
+    networks:
+      - instagram-network
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+
+ 
+  # pgAdmin na portu 5051
+ 
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: instagram-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5051:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - instagram-network
+    depends_on:
+      - postgres-auth
+
+volumes:
+  postgres-auth-data:
+  pgadmin-data:
+
+networks:
+  instagram-network:
+    driver: bridge
