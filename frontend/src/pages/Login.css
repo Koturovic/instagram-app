@@ -1,0 +1,148 @@
+body {
+  margin: 0;
+  font-family: Inter, sans-serif;
+}
+
+/* Background */
+.login-bg {
+  background-image: url("slika.jfif");
+  background-size: cover;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Top right button */
+.top-register-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 10px 16px;
+  background: #f5f5e6;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.top-register-btn:hover {
+  background: #f7f7f7;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Login box */
+.login-box {
+  background: #f5f5e6;
+  padding: 35px 40px;
+  border-radius: 12px;
+  width: 320px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+
+.avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 5px solid #e2b434;
+  object-fit: cover;
+  display: block;
+  margin: 0 auto 12px auto;
+  padding: 6px;
+}
+
+@font-face {
+  font-family: 'Billabong';
+  src: url('../assets/fonts/Billabong.ttf') format('truetype');
+}
+
+
+/* Logo */
+.logo {
+  font-size: 28px;
+  font-weight: bold;
+  margin-top: 10px;
+  font-family: 'Billabong', cursive;
+}
+
+/* Inputs */
+input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  outline: none;
+}
+
+input:focus {
+  border-color: #ffd166;
+  box-shadow: 0 0 0 2px rgba(255,209,102,0.3);
+}
+
+
+label {
+  font-size: 12px;
+  font-weight: 500;
+  display: block;
+  text-align: left;
+  margin-bottom: 5px;
+}
+
+.password-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+
+h2, p {
+  text-align: center;
+}
+
+/* Show button */
+.show-btn {
+  border-radius: 4px;
+  background: none;
+  border: none;
+  color: #555;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* Login button */
+.login-btn {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  background: #ffd166;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.login-box button:hover {
+  background: #cec046;
+}
+
+/* Error text */
+.error {
+  color: red;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+/* Sign up link */
+.signup-text {
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+.signup-text span {
+  color: blue;
+  cursor: pointer;
+}
