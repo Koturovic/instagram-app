@@ -2,6 +2,7 @@ package com.instagram.post_service.controller;
 
 import com.instagram.post_service.entity.Post;
 import com.instagram.post_service.service.PostService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +13,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/posts")
 @RequiredArgsConstructor
+
+@RestController
+@RequestMapping("/api/posts")
+@RequiredArgsConstructor
+@Tag(name = "Post Service", description = "Upravljanje objavama i medijima") // Dodaj ovo (uvezi import)
+
 public class PostController {
 
     private final PostService postService;
