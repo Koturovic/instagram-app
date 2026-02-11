@@ -13,10 +13,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/posts")
 @RequiredArgsConstructor
-
-@RestController
-@RequestMapping("/api/posts")
-@RequiredArgsConstructor
 @Tag(name = "Post Service", description = "Upravljanje objavama i medijima") // Dodaj ovo (uvezi import)
 
 public class PostController {
@@ -42,6 +38,12 @@ public class PostController {
     @GetMapping("/user/{userId}")
     public List<Post> getPostsByUserId(@PathVariable Long userId) {
         return postService.getPostsByUserId(userId);
+    }
+
+    // Dohvatanje jednog posta po ID-ju
+    @GetMapping("/{id}")
+    public Post getPostById(@PathVariable Long id) {
+        return postService.getPostById(id);
     }
 
     // Brisanje posta
