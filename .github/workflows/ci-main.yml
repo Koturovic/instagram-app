@@ -44,7 +44,6 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./services/auth-service
-          file: ./services/auth-service/Dockerfile
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/auth-service:${{ steps.tag.outputs.value }}
