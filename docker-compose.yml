@@ -1,7 +1,7 @@
 services:
-  
+  # -------------------------------------------------------------------------
   # PostgreSQL za auth-service
-  
+  # -------------------------------------------------------------------------
   postgres-auth:
     image: postgres:16-alpine
     container_name: instagram-postgres-auth
@@ -21,9 +21,9 @@ services:
       timeout: 5s
       retries: 5
 
-  
+  # -------------------------------------------------------------------------
   # auth-service (Spring Boot)
-  
+  # -------------------------------------------------------------------------
   auth-service:
     build:
       context: ./services/auth-service
@@ -43,9 +43,24 @@ services:
       postgres-auth:
         condition: service_healthy
 
- 
+  # -------------------------------------------------------------------------
+  # Frontend (React + Vite, served with nginx)
+  # -------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: instagram-frontend
+    ports:
+      - "5173:80"
+    networks:
+      - instagram-network
+    depends_on:
+      - auth-service
+
+  # -------------------------------------------------------------------------
   # pgAdmin na portu 5051
- 
+  # -------------------------------------------------------------------------
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: instagram-pgadmin
