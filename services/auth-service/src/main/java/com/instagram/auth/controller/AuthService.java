@@ -65,4 +65,14 @@ public class AuthService {
 
         return AuthenticationResponse.builder().token(jwtToken).build();
     }
+
+    public String validateToken(String token) {
+        String email = jwtService.extractUsername(token);
+        var user = userRepository.findByEmail(email).orElseThrow();
+        UserDetails userDetails = new UserDetailsAdapter(user);
+        if (!jwtService.isTokenValid(token, userDetails)) {
+            throw new RuntimeException("Token nije validan");
+        }
+        return email;
+    }
 }
