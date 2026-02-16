@@ -1,0 +1,70 @@
+.profile-container {
+    max-width: 935px;
+    margin: 0 auto;
+    padding: 30px 20px;
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 44px;
+}
+
+.profile-image img {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 100px;
+    border: 1px solid #dbdbdb;
+}
+
+.profile-info {
+    flex-grow: 1;
+}
+
+.profile-username {
+    font-size: 28px;
+    font-weight: 300;
+    margin-bottom: 20px;
+}
+
+.profile-stats {
+    display: flex;
+    gap: 40px;
+    margin-bottom: 20px;
+}
+
+.profile-stats span {
+    font-size: 16px;
+}
+
+.profile-bio b {
+    display: block;
+    margin-bottom: 5px;
+}
+
+/* Grid sistem za slike */
+.profile-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+}
+
+.grid-item {
+    position: relative;
+    padding-bottom: 100%; /* Pravi kvadrat */
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.grid-item img {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.grid-item:hover {
+    filter: brightness(0.8);
+}

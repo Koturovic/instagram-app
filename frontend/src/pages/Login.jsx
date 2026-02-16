@@ -31,6 +31,7 @@ export default function Login() {
       const data = await login(email, password);
       localStorage.setItem("token", data.token);
       alert("Login success!");
+      navigate("/home");
     } catch {
       setError("Wrong email or password");
     }
