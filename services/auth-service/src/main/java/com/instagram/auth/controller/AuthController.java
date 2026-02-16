@@ -39,8 +39,8 @@ public class AuthController {
 
         // 2.pozovemo servis da validira token
         try {
-            String username = service.validateToken(token);
-            return ResponseEntity.ok(username);
+            ValidateResponse response = service.validateToken(token);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }

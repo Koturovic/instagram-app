@@ -39,7 +39,9 @@ public class JwtService {
 		return generateToken(new HashMap<>(), userDetails);
 	}
 
-
+	public Integer extractUserId(String token) {
+		return extractClaim(token, claims -> claims.get("userId", Integer.class));
+	}
 	public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
 		return Jwts
 				.builder()

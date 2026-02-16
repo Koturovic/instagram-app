@@ -54,9 +54,7 @@ Thumbs.db
 uploads/
 post-uploads/
 
-# Docker (auth-service – za sada ne pushujemo)
-services/auth-service/Dockerfile
-services/auth-service/.dockerignore
+# Lokalni docker override
 docker-compose.override.yml
 
 # Node modules (ako ima frontend)
