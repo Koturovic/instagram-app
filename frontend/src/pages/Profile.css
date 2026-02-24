@@ -44,7 +44,59 @@
     margin-bottom: 5px;
 }
 
-/* Grid sistem za slike */
+.profile-bio .private-badge {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #ed4956;
+    font-weight: 600;
+}
+
+.follow-btn,
+.unfollow-btn {
+    padding: 8px 24px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.follow-btn {
+    background: #0095f6;
+    color: white;
+}
+
+.follow-btn:hover {
+    background: #1877f2;
+}
+
+.unfollow-btn {
+    background: white;
+    color: #262626;
+    border: 1px solid #dbdbdb;
+}
+
+.unfollow-btn:hover {
+    background: #fafafa;
+}
+
+.edit-profile-btn {
+    padding: 8px 24px;
+    background: white;
+    border: 1px solid #dbdbdb;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.edit-profile-btn:hover {
+    background: #fafafa;
+}
+
 .profile-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -53,7 +105,7 @@
 
 .grid-item {
     position: relative;
-    padding-bottom: 100%; /* Pravi kvadrat */
+    padding-bottom: 100%; 
     overflow: hidden;
     cursor: pointer;
 }

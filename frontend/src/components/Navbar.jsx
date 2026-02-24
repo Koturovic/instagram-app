@@ -1,9 +1,11 @@
-// components/Navbar.jsx
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import CreatePostModal from "./CreatePostModal";
 import "./Navbar.css";
 
 export default function Navbar() {
     const navigate = useNavigate();
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     return (
         <>
@@ -19,6 +21,14 @@ export default function Navbar() {
                         Home
                     </button>
 
+                    <button onClick={() => navigate("/search")}>
+                        🔍 Search
+                    </button>
+
+                    <button onClick={() => setIsModalOpen(true)} className="create-btn">
+                        + Create
+                    </button>
+
                     <button onClick={() => navigate("/profile")}>
                         Profile
                     </button>
@@ -31,6 +41,11 @@ export default function Navbar() {
                     </button>
                 </div>
             </div>
+
+            <CreatePostModal 
+                isOpen={isModalOpen} 
+                onClose={() => setIsModalOpen(false)} 
+            />
         </>
     )
 }

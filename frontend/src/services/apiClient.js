@@ -10,14 +10,14 @@ const PORTS = {
 
 const BASE_URL = "http://localhost";
 
-// Kreiramo osnovnu instancu
+// osnovni config za axios klijenta (sve zahteve saljemo preko tokena)
 const apiClient = axios.create({
     headers: {
         "Content-Type": "application/json",
     },
 });
 
-// presretac = lepi token pre svakog slanja
+// presretac = lepi token pre svakog slanja zahteva
 apiClient.interceptors.request.use((config) => {
     const token = localStorage.getItem("token");
     if (token) {

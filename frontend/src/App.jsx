@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Home from "./pages/Home";
+import Search from "./pages/Search";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Profile from "./pages/Profile";
 
@@ -19,12 +20,14 @@ export default function App() {
           /* <Route path="/home" element={<ProtectedRoute> <Home /> </ProtectedRoute>} */
         }
         <Route path="/home" element={<Home />} />
+        <Route path="/search" element={<Search />} />
 
         {
           /* Kasnije prepraviti ovako da izgleda:
           /* <Route path="/profile" element={<ProtectedRoute> <Profile /> </ProtectedRoute>} */
         }
         <Route path="/profile" element={<Profile />} />
+        <Route path="/profile/:userId" element={<Profile />} />
 
       </Routes>
     </BrowserRouter>

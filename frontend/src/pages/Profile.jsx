@@ -1,47 +1,98 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import EditProfileModal from "../components/EditProfileModal";
 import apiClient, { getUrl } from "../services/apiClient";
 import { getUserIdFromToken } from "../utils/auth";
+import { followUser, unfollowUser, getFollowers, getFollowing } from "../services/userService";
 import "./Profile.css";
 
 export default function Profile() {
+    const { userId: profileUserId } = useParams(); // id korisnika iz url-a
+    const currentUserId = getUserIdFromToken(); // ulogovani korisnik
+    const targetUserId = profileUserId || currentUserId; // ako nema korisnika u url-u, prikazujemo ulogovan profil
+    const isOwnProfile = !profileUserId || profileUserId === String(currentUserId);
+
     const [user, setUser] = useState({ 
         username: "", 
         firstName: "", 
         lastName: "", 
-        bio: "My Instagram Clone Profile" 
+        bio: "",
+        profileImageUrl: "",
+        isPrivate: false
     });
     const [userPosts, setUserPosts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [followersCount, setFollowersCount] = useState(0);
+    const [followingCount, setFollowingCount] = useState(0);
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-    const userId = getUserIdFromToken();
+    const fetchProfileData = useCallback(async () => {
+        try {
+            setLoading(true);
+            
+            // fetchovanje user podataka (auth-service - 8080)
+            const userRes = await apiClient.get(getUrl("AUTH", `/users/${targetUserId}`));
+            setUser(userRes.data);
+
+            // fetchovanje post-ova (post-service - 8082)
+            const postsRes = await apiClient.get(getUrl("POST", `/posts/user/${targetUserId}`));
+            setUserPosts(postsRes.data);
+
+            // fetchovanje followers/following countera (user-service - 8081)
+            try {
+                const followersRes = await getFollowers(targetUserId);
+                const followingRes = await getFollowing(targetUserId);
+                setFollowersCount(followersRes.length);
+                setFollowingCount(followingRes.length);
+
+                if (!isOwnProfile) {
+                    const isUserFollowing = followersRes.some(
+                        follower => follower.id === currentUserId
+                    );
+                    setIsFollowing(isUserFollowing);
+                }
+            } catch (err) {
+                console.error("User service not available yet:", err);
+                // brojac je 0, sve dok servis ne bude AKTIVAN
+                // nakon refresh-a stranice, brojaci ce biti True
+            }
+
+        } catch (err) {
+            console.error("Error fetching profile data:", err);
+        } finally {
+            setLoading(false);
+        }
+    }, [targetUserId, currentUserId, isOwnProfile]);
 
     useEffect(() => {
         document.title = "Profile | Instagram";
         
-        if (userId) {
+        if (targetUserId) {
             fetchProfileData();
         }
-    }, [userId]);
+    }, [targetUserId, fetchProfileData]);
 
-    const fetchProfileData = async () => {
+    const handleFollowToggle = async () => {
         try {
-            setLoading(true);
-            
-            // 1. Povlačimo podatke o korisniku (Miljanov Auth Service - Port 8080)
-            // Napomena: Proveri sa Miljanom tačnu rutu za profil, pretpostavljam /users/me ili /auth/me
-            const userRes = await apiClient.get(getUrl("AUTH", `/users/${userId}`));
-            setUser(prev => ({...prev, ...userRes.data}));
-
-            // 2. Povlačimo sve objave tog korisnika (Nemanja/Sloba - Post Service - Port 8082)
-            const postsRes = await apiClient.get(getUrl("POST", `/posts/user/${userId}`));
-            setUserPosts(postsRes.data);
-
+            if (isFollowing) {
+                await unfollowUser(targetUserId);
+                setIsFollowing(false);
+                setFollowersCount(prev => prev - 1);
+            } else {
+                await followUser(targetUserId);
+                setIsFollowing(true);
+                setFollowersCount(prev => prev + 1);
+            }
         } catch (err) {
-            console.error("Greška pri učitavanju profila:", err);
-        } finally {
-            setLoading(false);
+            console.error("Follow/Unfollow error:", err);
+            alert("Action failed. User service might not be available.");
         }
+    };
+
+    const handleProfileUpdate = (updatedUser) => {
+        setUser(updatedUser);
     };
 
     return (
@@ -50,25 +101,43 @@ export default function Profile() {
             <div className="profile-container">
                 <header className="profile-header">
                     <div className="profile-image">
-                        {/* Avatar možeš vući iz user objekta ako ga Miljan čuva */}
-                        <img src="https://i.pravatar.cc/150?img=3" alt="profile" />
+                        <img 
+                            src={user.profileImageUrl || "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg"} 
+                            alt={user.username} 
+                        />
                     </div>
                     
                     <section className="profile-info">
                         <div className="profile-top-row">
                             <h2 className="profile-username">{user.username || "username"}</h2>
-                            <button className="edit-profile-btn">Edit Profile</button>
+                            
+                            {isOwnProfile ? (
+                                <button 
+                                    className="edit-profile-btn"
+                                    onClick={() => setIsEditModalOpen(true)}
+                                >
+                                    Edit Profile
+                                </button>
+                            ) : (
+                                <button 
+                                    className={isFollowing ? "unfollow-btn" : "follow-btn"}
+                                    onClick={handleFollowToggle}
+                                >
+                                    {isFollowing ? "Unfollow" : "Follow"}
+                                </button>
+                            )}
                         </div>
 
                         <div className="profile-stats">
                             <span><b>{userPosts.length}</b> posts</span>
-                            <span><b>0</b> followers</span>
-                            <span><b>0</b> following</span>
+                            <span><b>{followersCount}</b> followers</span>
+                            <span><b>{followingCount}</b> following</span>
                         </div>
 
                         <div className="profile-bio">
                             <b>{user.firstName} {user.lastName}</b>
-                            <p>{user.bio}</p>
+                            <p>{user.bio || "No bio yet"}</p>
+                            {user.isPrivate && <span className="private-badge">This is private account.</span>}
                         </div>
                     </section>
                 </header>
@@ -94,6 +163,13 @@ export default function Profile() {
                     )}
                 </div>
             </div>
+
+            <EditProfileModal
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                currentUser={user}
+                onUpdate={handleProfileUpdate}
+            />
         </>
     );
 }

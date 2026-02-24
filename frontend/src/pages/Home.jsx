@@ -7,19 +7,26 @@ export default function Home() {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const fetchPosts = async () => {
+        try {
+            setLoading(true);
+            const data = await getFeed();
+            setPosts(data);
+        } catch (err) {
+            console.error("Error fetching feed:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchPosts = async () => {
-            try {
-                const data = await getFeed();
-                setPosts(data);
-            } catch (err) {
-                console.error("Greška pri učitavanju feed-a:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchPosts();
     }, []);
+
+    const handlePostDelete = (postId) => {
+        // nakon brisanja post-a, osvezavamo feed tako sto uklanjamo obrisani post iz stanja
+        setPosts(prevPosts => prevPosts.filter(p => p.id !== postId));
+    };
 
     return (
         <>
@@ -28,7 +35,7 @@ export default function Home() {
                 {loading ? (
                     <p>Loading...</p>
                 ) : (
-                    posts.map(post => <PostCard key={post.id} post={post} />)
+                    posts.map(post => <PostCard key={post.id} post={post} onDelete={handlePostDelete} />)
                 )}
             </div>
         </>
