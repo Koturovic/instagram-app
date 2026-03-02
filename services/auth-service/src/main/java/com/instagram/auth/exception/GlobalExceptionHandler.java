@@ -51,6 +51,15 @@ public class GlobalExceptionHandler {
 
     // hendluje exception kada validacija ne uspe
 
+    @ExceptionHandler(ProfileNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleProfileNotFound(ProfileNotFoundException ex) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(Map.of(
+                        "error", "PROFILE_NOT_FOUND",
+                        "message", ex.getMessage()));
+    }
+
     // baca se kada @Valid ne prođe (npr. @NotBlank, @Email).
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
