@@ -5,9 +5,6 @@ import lombok.*;
 
 import java.time.Instant;
 
-/**
- * Prihvaćena relacija praćenja. Za zahteve za praćenje (privatni profili) koristi se FollowRequest.
- */
 @Entity
 @Table(name = "follows", uniqueConstraints = @UniqueConstraint(columnNames = {"follower_user_id", "following_user_id"}))
 @Getter

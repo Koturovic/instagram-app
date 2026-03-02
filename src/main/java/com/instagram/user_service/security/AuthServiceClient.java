@@ -1,6 +1,5 @@
 package com.instagram.user_service.security;
 
-import com.instagram.user_service.service.ProfileNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
@@ -8,10 +7,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import com.instagram.user_service.exception.ProfileNotFoundException;
+
 /**
- * Calls Auth service: validate token and get profile by userId.
+ * Calls Auth service to validate the token.
  * GET {AUTH_SERVICE_URL}/api/v1/auth/validate
- * GET {AUTH_SERVICE_URL}/api/v1/auth/profiles/{userId}
+ * Header: Authorization: Bearer <token>
+ * 200 OK → { userId, email }
+ * 401 → token invalid
  */
 @Component
 @RequiredArgsConstructor
@@ -63,20 +66,15 @@ public class AuthServiceClient {
     }
 
     /**
-     * Dohvata profil korisnika iz auth-service.
+     * Dohvata profil po userId od auth-service (za follow/block logiku).
      * GET {AUTH_SERVICE_URL}/api/v1/auth/profiles/{userId}
-     * Header: Authorization: Bearer <token>
      *
-     * @param userId      auth userId
-     * @param bearerToken token (without "Bearer " prefix) za autorizaciju poziva
-     * @return AuthProfileResponse (userId, username, isPrivate)
      * @throws ProfileNotFoundException kada auth vrati 404
      */
-    public AuthProfileResponse getProfileByUserId(Long userId, String bearerToken) {
+    public AuthProfileResponse getProfileByUserId(Long userId) {
         String url = authServiceProperties.getServiceUrl().replaceAll("/$", "") + PROFILES_PATH + "/" + userId;
         HttpHeaders headers = new HttpHeaders();
-        headers.set(HttpHeaders.AUTHORIZATION, "Bearer " + bearerToken);
-        headers.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+        headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
         try {
@@ -91,16 +89,15 @@ public class AuthServiceClient {
             }
         } catch (HttpClientErrorException.NotFound e) {
             log.debug("Auth service returned 404 for profile userId={}", userId);
-            throw new ProfileNotFoundException(userId);
+            throw new ProfileNotFoundException("Profile not found for userId: " + userId);
         } catch (HttpClientErrorException e) {
-            log.warn("Auth service returned {} for GET profile: {}", e.getStatusCode(), e.getMessage());
-            throw new ProfileNotFoundException("Profile not found for user: " + userId);
+            log.warn("Auth service returned {} for profile {}: {}", e.getStatusCode(), userId, e.getMessage());
+            throw new ProfileNotFoundException("Could not fetch profile");
         } catch (Exception e) {
-            log.warn("Auth service GET profile failed: {}", e.getMessage());
-            throw new ProfileNotFoundException("Profile not found for user: " + userId);
+            log.warn("Auth service call failed for profile {}: {}", userId, e.getMessage());
+            throw new ProfileNotFoundException("Could not fetch profile");
         }
-
-        throw new ProfileNotFoundException(userId);
+        throw new ProfileNotFoundException("Could not fetch profile");
     }
 
     public static class TokenInvalidException extends RuntimeException {

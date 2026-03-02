@@ -5,9 +5,6 @@ import lombok.*;
 
 import java.time.Instant;
 
-/**
- * Zahtev za praćenje (za privatne profile). Kad target prihvati → kreira se Follow i status može ACCEPTED.
- */
 @Entity
 @Table(name = "follow_requests", uniqueConstraints = @UniqueConstraint(columnNames = {"requester_user_id", "target_user_id"}))
 @Getter

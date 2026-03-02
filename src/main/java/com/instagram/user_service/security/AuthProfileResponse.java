@@ -5,16 +5,13 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Mirror odgovora auth-service GET /api/v1/auth/profiles/{userId}.
- */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AuthProfileResponse {
 
-    private Long userId;
+    private Long userId;   // auth vraća Integer, Jackson mapira u Long
     private String username;
     private Boolean isPrivate;
 }

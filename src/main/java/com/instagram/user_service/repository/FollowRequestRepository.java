@@ -18,6 +18,4 @@ public interface FollowRequestRepository extends JpaRepository<FollowRequest, Lo
 
     boolean existsByRequesterUserIdAndTargetUserIdAndStatus(
             Long requesterUserId, Long targetUserId, FollowRequestStatus status);
-
-    Optional<FollowRequest> findByRequesterUserIdAndTargetUserId(Long requesterUserId, Long targetUserId);
 }

@@ -1,8 +1,8 @@
 package com.instagram.user_service.exception;
 
+import com.instagram.user_service.exception.ProfileNotFoundException;
 import com.instagram.user_service.service.BadRequestException;
 import com.instagram.user_service.service.ForbiddenException;
-import com.instagram.user_service.service.ProfileNotFoundException;
 import com.instagram.user_service.service.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
