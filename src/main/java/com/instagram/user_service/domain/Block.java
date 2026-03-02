@@ -6,7 +6,7 @@ import lombok.*;
 import java.time.Instant;
 
 @Entity
-@Table(name = "blocks", uniqueConstraints = @UniqueConstraint(columnNames = {"blocker_id", "blocked_id"}))
+@Table(name = "blocks", uniqueConstraints = @UniqueConstraint(columnNames = {"blocker_user_id", "blocked_user_id"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -18,13 +18,11 @@ public class Block {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "blocker_id", nullable = false)
-    private Profile blocker;
+    @Column(name = "blocker_user_id", nullable = false)
+    private Long blockerUserId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "blocked_id", nullable = false)
-    private Profile blocked;
+    @Column(name = "blocked_user_id", nullable = false)
+    private Long blockedUserId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

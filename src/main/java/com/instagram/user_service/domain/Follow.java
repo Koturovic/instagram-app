@@ -5,8 +5,11 @@ import lombok.*;
 
 import java.time.Instant;
 
+/**
+ * Prihvaćena relacija praćenja. Za zahteve za praćenje (privatni profili) koristi se FollowRequest.
+ */
 @Entity
-@Table(name = "follows", uniqueConstraints = @UniqueConstraint(columnNames = {"follower_id", "following_id"}))
+@Table(name = "follows", uniqueConstraints = @UniqueConstraint(columnNames = {"follower_user_id", "following_user_id"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -18,25 +21,14 @@ public class Follow {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "follower_id", nullable = false)
-    private Profile follower;
+    @Column(name = "follower_user_id", nullable = false)
+    private Long followerUserId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "following_id", nullable = false)
-    private Profile following;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private FollowStatus status;
+    @Column(name = "following_user_id", nullable = false)
+    private Long followingUserId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
-
-    public enum FollowStatus {
-        PENDING,   // za privatne profile – čeka prihvatanje
-        ACCEPTED   // javni profil ili prihvaćen zahtev
-    }
 
     @PrePersist
     void prePersist() {

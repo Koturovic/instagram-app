@@ -60,7 +60,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             CurrentUser principal = new CurrentUser(validateResponse.getUserId(), email);
             var auth = new UsernamePasswordAuthenticationToken(
                     principal,
-                    null,
+                    token,
                     List.of(new SimpleGrantedAuthority("ROLE_USER"))
             );
             SecurityContextHolder.getContext().setAuthentication(auth);

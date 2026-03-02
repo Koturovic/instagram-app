@@ -1,8 +1,8 @@
 package com.instagram.user_service.repository;
 
 import com.instagram.user_service.domain.Block;
-import com.instagram.user_service.domain.Profile;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -11,20 +11,22 @@ import java.util.Optional;
 
 public interface BlockRepository extends JpaRepository<Block, Long> {
 
-    Optional<Block> findByBlockerAndBlocked(Profile blocker, Profile blocked);
+    Optional<Block> findByBlockerUserIdAndBlockedUserId(Long blockerUserId, Long blockedUserId);
 
-    boolean existsByBlockerAndBlocked(Profile blocker, Profile blocked);
+    boolean existsByBlockerUserIdAndBlockedUserId(Long blockerUserId, Long blockedUserId);
 
-    @Query("SELECT b FROM Block b WHERE b.blocker.id = :blockerId AND b.blocked.id = :blockedId")
-    Optional<Block> findByBlockerIdAndBlockedId(@Param("blockerId") Long blockerId, @Param("blockedId") Long blockedId);
+    List<Block> findByBlockerUserId(Long blockerUserId);
 
-    @Query("SELECT b.blocked FROM Block b WHERE b.blocker.id = :blockerId")
-    List<Profile> findBlockedProfilesByBlockerId(@Param("blockerId") Long blockerId);
+    List<Block> findByBlockedUserId(Long blockedUserId);
 
-    @Query("SELECT b.blocker FROM Block b WHERE b.blocked.id = :blockedId")
-    List<Profile> findBlockerProfilesByBlockedId(@Param("blockedId") Long blockedId);
+    @Query("SELECT b.blockedUserId FROM Block b WHERE b.blockerUserId = :blockerId")
+    List<Long> findBlockedUserIdsByBlockerUserId(@Param("blockerId") Long blockerUserId);
 
     @Query("SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END FROM Block b " +
-           "WHERE (b.blocker.id = :id1 AND b.blocked.id = :id2) OR (b.blocker.id = :id2 AND b.blocked.id = :id1)")
-    boolean existsBlockBetween(@Param("id1") Long profileId1, @Param("id2") Long profileId2);
+           "WHERE (b.blockerUserId = :id1 AND b.blockedUserId = :id2) OR (b.blockerUserId = :id2 AND b.blockedUserId = :id1)")
+    boolean existsBlockBetween(@Param("id1") Long userId1, @Param("id2") Long userId2);
+
+    @Modifying
+    @Query("DELETE FROM Block b WHERE b.blockerUserId = :blockerId AND b.blockedUserId = :blockedId")
+    void deleteByBlockerUserIdAndBlockedUserId(@Param("blockerId") Long blockerUserId, @Param("blockedId") Long blockedUserId);
 }
