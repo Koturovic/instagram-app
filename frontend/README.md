@@ -68,29 +68,6 @@ npm run test:coverage
 - **@testing-library/jest-dom** - Custom matchers for DOM assertions
 - **@vitest/coverage-v8** - Code coverage reporting with V8 engine
 
-## API Documentation
-
-Complete API documentation is available in the project root directory:
-
-- **[FRONTEND_API_CONTRACT.md](../FRONTEND_API_CONTRACT.md)** - Complete API specification for all 5 microservices
-  - Request/response formats with JSON examples
-  - Authentication requirements
-  - Error handling patterns
-  - List of missing endpoints
-
-- **[api-tests.http](../api-tests.http)** - HTTP test file for VSCode REST Client or IntelliJ HTTP Client
-  - Ready-to-use test requests for all endpoints
-  - Variables for easy configuration
-
-- **[Instagram_Clone_API.postman_collection.json](../Instagram_Clone_API.postman_collection.json)** - Postman collection
-  - Import into Postman for API testing
-  - Auto-save JWT tokens
-
-- **[BACKEND_INTEGRATION_GUIDE.md](../BACKEND_INTEGRATION_GUIDE.md)** - Integration guide for backend team
-  - Quick start instructions
-  - Critical security notes
-  - Backend implementation checklist
-
 ## Project Structure
 
 ```
@@ -176,8 +153,6 @@ The following features have UI components ready but are blocked by missing backe
 - ⏳ **Edit Comment** - UI exists, missing `PUT /comments/{commentId}` endpoint
 - ⏳ **Delete Comment (by author)** - Missing `DELETE /comments/{commentId}` endpoint
 
-> **Note:** See [FRONTEND_API_CONTRACT.md](../FRONTEND_API_CONTRACT.md) for complete endpoint specifications.
-
 ## API Integration
 
 The frontend integrates with 5 microservices:
@@ -192,8 +167,6 @@ All services use JWT authentication via `Authorization: Bearer <token>` header.
 
 ### Known Backend Issues
 
-⚠️ **Critical Security Vulnerabilities** (documented in [FRONTEND_API_CONTRACT.md](../FRONTEND_API_CONTRACT.md)):
-
 1. **Missing JWT Authentication** - 3 services (post-service, interaction-service, feed-service) do not validate JWT tokens
    - Security risk: Anyone can perform actions (like, comment, delete) as any user
    - Required fix: Add JWT validation filter to all services
@@ -205,8 +178,6 @@ All services use JWT authentication via `Authorization: Bearer <token>` header.
 3. **Hardcoded Following List** - Feed service has `List.of(1L)` hardcoded
    - Bug: Feed only shows posts from user ID 1, not actual following list
    - Required fix: Fetch real following list from user-service
-
-> **For Backend Team:** Please read [BACKEND_INTEGRATION_GUIDE.md](../BACKEND_INTEGRATION_GUIDE.md) for complete details and fixes.
 
 ## Environment Variables
 
