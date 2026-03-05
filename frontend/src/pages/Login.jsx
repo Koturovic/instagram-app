@@ -52,7 +52,7 @@ export default function Login() {
         <form onSubmit={handleLogin}>
               <label>Email address</label>
               <input
-                type="email"
+                type="text"
                 placeholder="Enter email"
                 onChange={(e) => setEmail(e.target.value)}
               />

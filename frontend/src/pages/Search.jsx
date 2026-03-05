@@ -66,6 +66,7 @@ export default function Search() {
                     {!loading && searched && results.length === 0 && (
                         <div className="no-results">
                             <p>🔍 No users found for "{query}"</p>
+                            <p>Search trenutno možda nije dostupan dok backend pretraga ne bude završena.</p>
                         </div>
                     )}
 

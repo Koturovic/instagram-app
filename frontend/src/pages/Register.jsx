@@ -86,11 +86,11 @@ function Register() {
 
       localStorage.setItem("token", data.token);
 
-      alert("Registration successfull!");
+      alert("Registration successful!");
       navigate("/");
     } catch (err) {
       console.error(err)
-      alert("Registration failed (email or username already exists)");
+      alert("Registration failed! Please try again.");
       navigate("/")
     }
   };
@@ -132,7 +132,7 @@ function Register() {
           )}
 
           <input
-            type="email"
+            type="text"
             name="email"
             placeholder="Email"
             value={formData.email}

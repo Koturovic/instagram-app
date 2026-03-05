@@ -9,42 +9,53 @@ export const searchUsers = async (query) => {
 
 export const followUser = async (targetUserId) => {
     const response = await apiClient.post(
-        getUrl("USER", `/follow/request/${targetUserId}`)
+        getUrl("USER", `/users/follow-request/${targetUserId}`)
     );
     return response.data;
 };
 
 export const unfollowUser = async (targetUserId) => {
     const response = await apiClient.delete(
-        getUrl("USER", `/follow/${targetUserId}`)
+        getUrl("USER", `/users/following/${targetUserId}`)
     );
     return response.data;
 };
 
-export const getFollowers = async (userId) => {
+export const getFollowersCount = async (userId) => {
     const response = await apiClient.get(
-        getUrl("USER", `/users/${userId}/followers`)
+        getUrl("USER", `/users/${userId}/followers/count`)
     );
-    return response.data;
+    return response.data?.count ?? 0;
 };
 
-export const getFollowing = async (userId) => {
+export const getFollowingCount = async (userId) => {
     const response = await apiClient.get(
-        getUrl("USER", `/users/${userId}/following`)
+        getUrl("USER", `/users/${userId}/following/count`)
     );
-    return response.data;
+    return response.data?.count ?? 0;
 };
 
 export const acceptFollowRequest = async (requestId) => {
     const response = await apiClient.post(
-        getUrl("USER", `/follow/accept/${requestId}`)
+        getUrl("USER", `/users/follow-request/${requestId}/accept`)
     );
     return response.data;
 };
 
-export const rejectFollowRequest = async (requestId) => {
+export const rejectFollowRequest = async () => {
+    throw new Error("Reject follow request endpoint is not implemented in user-service yet.");
+};
+
+export const blockUser = async (targetUserId) => {
+    const response = await apiClient.post(
+        getUrl("USER", `/users/block/${targetUserId}`)
+    );
+    return response.data;
+};
+
+export const unblockUser = async (targetUserId) => {
     const response = await apiClient.delete(
-        getUrl("USER", `/follow/reject/${requestId}`)
+        getUrl("USER", `/users/block/${targetUserId}`)
     );
     return response.data;
 };

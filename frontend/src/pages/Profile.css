@@ -4,6 +4,16 @@
     padding: 30px 20px;
 }
 
+.profile-notice {
+    margin: 0 0 16px;
+    padding: 10px 12px;
+    border: 1px solid #dbdbdb;
+    border-radius: 8px;
+    background: #fafafa;
+    font-size: 14px;
+    color: #262626;
+}
+
 .profile-header {
     display: flex;
     align-items: center;
@@ -82,6 +92,18 @@
     background: #fafafa;
 }
 
+.requested-btn {
+    padding: 8px 24px;
+    background: white;
+    color: #262626;
+    border: 1px solid #dbdbdb;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: default;
+    opacity: 0.6;
+}
+
 .edit-profile-btn {
     padding: 8px 24px;
     background: white;
@@ -95,6 +117,73 @@
 
 .edit-profile-btn:hover {
     background: #fafafa;
+}
+
+.edit-profile-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.profile-top-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.profile-menu-container {
+    position: relative;
+}
+
+.profile-menu-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px 12px;
+    color: #262626;
+    transition: all 0.2s;
+}
+
+.profile-menu-btn:hover {
+    background: #fafafa;
+    border-radius: 6px;
+}
+
+.profile-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border: 1px solid #dbdbdb;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    min-width: 150px;
+    margin-top: 4px;
+}
+
+.menu-item {
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+    color: #262626;
+    transition: background 0.2s;
+}
+
+.menu-item:hover {
+    background: #fafafa;
+}
+
+.menu-item:first-child {
+    border-radius: 8px 8px 0 0;
+}
+
+.menu-item:last-child {
+    border-radius: 0 0 8px 8px;
 }
 
 .profile-grid {
@@ -119,4 +208,50 @@
 
 .grid-item:hover {
     filter: brightness(0.8);
+}
+
+.private-account-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.private-icon {
+    font-size: 62px;
+    margin-bottom: 20px;
+}
+
+.private-account-message h3 {
+    font-size: 28px;
+    font-weight: 300;
+    margin-bottom: 10px;
+    color: #262626;
+}
+
+.private-account-message p {
+    font-size: 14px;
+    color: #8e8e8e;
+}
+
+.blocked-user-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.blocked-icon {
+    font-size: 62px;
+    margin-bottom: 20px;
+}
+
+.blocked-user-message h3 {
+    font-size: 28px;
+    font-weight: 300;
+    margin-bottom: 10px;
+    color: #262626;
+}
+
+.blocked-user-message p {
+    font-size: 14px;
+    color: #8e8e8e;
 }

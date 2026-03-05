@@ -27,6 +27,16 @@ apiClient.interceptors.request.use((config) => {
 });
 
 // povezivanje razlicitih servisa 
-export const getUrl = (service, endpoint) => `${BASE_URL}:${PORTS[service]}/api/v1${endpoint}`;
+export const getUrl = (service, endpoint) => {
+    const baseUrl = `${BASE_URL}:${PORTS[service]}`;
+    
+    // auth-service i user-service imaju /api/v1/ prefix
+    if (service === "AUTH" || service === "USER") {
+        return `${baseUrl}/api/v1${endpoint}`;
+    }
+    
+    // ostali koriste /api/ prefix
+    return `${baseUrl}/api${endpoint}`;
+};
 
 export default apiClient;

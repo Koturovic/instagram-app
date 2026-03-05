@@ -9,7 +9,7 @@ export const getUserIdFromToken = () => {
     try {
         const decoded = jwtDecode(token);
         console.log("Sadržaj tokena:", decoded);
-        return decoded.id || decoded.userId || decoded.sub; 
+        return decoded.id || decoded.userId || decoded.sub || null; 
     } catch (error) {
         console.error("Nevalidan token:", error);
         return null;

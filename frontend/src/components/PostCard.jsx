@@ -2,18 +2,29 @@ import { useState, useEffect, useCallback } from "react";
 import { toggleLike, getComments, addComment } from "../services/interactionService";
 import { deletePost } from "../services/postService";
 import { getUserIdFromToken } from "../utils/auth";
+import { getUsernameById } from "../services/authService";
 import "./PostCard.css";
 
 export default function PostCard({ post, onDelete }) {
     const [liked, setLiked] = useState(false);
-    const [likes, setLikes] = useState(post.likes);
+    const [likes, setLikes] = useState(post.likes ?? 0);
     const [comments, setComments] = useState([]);
     const [showComments, setShowComments] = useState(false);
     const [newComment, setNewComment] = useState("");
     const [loadingComments, setLoadingComments] = useState(false);
     const [commentsLoaded, setCommentsLoaded] = useState(false);
+    const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+    const [commentUsernames, setCommentUsernames] = useState({});
 
     const currentUserId = getUserIdFromToken();
+    const displayUsername = post.username || (post.userId ? `user${post.userId}` : "Unknown user");
+    const avatarUrl = post.avatar || "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg";
+    
+    const mediaFiles = post.mediaFiles && post.mediaFiles.length > 0 
+        ? post.mediaFiles 
+        : [{ fileUrl: post.image || "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=800&auto=format&fit=crop" }];
+    
+    const hasMultipleMedia = mediaFiles.length > 1;
 
     const fetchComments = useCallback(async () => {
         try {
@@ -21,6 +32,16 @@ export default function PostCard({ post, onDelete }) {
             const data = await getComments(post.id);
             setComments(data);
             setCommentsLoaded(true);
+            
+            const userIds = [...new Set(data.map(c => c.userId))]; 
+            const usernamePromises = userIds.map(async (userId) => {
+                const username = await getUsernameById(userId);
+                return [userId, username];
+            });
+            
+            const usernameEntries = await Promise.all(usernamePromises);
+            const usernameMap = Object.fromEntries(usernameEntries);
+            setCommentUsernames(usernameMap);
         } catch (err) {
             console.error("Error fetching comments:", err);
         } finally {
@@ -68,6 +89,9 @@ export default function PostCard({ post, onDelete }) {
             const comment = await addComment(post.id, currentUserId, newComment);
             setComments([...comments, comment]);
             setNewComment("");
+            
+            const username = await getUsernameById(currentUserId);
+            setCommentUsernames(prev => ({ ...prev, [currentUserId]: username }));
         } catch (err) {
             console.error("Error adding comments:", err);
         }
@@ -75,6 +99,14 @@ export default function PostCard({ post, onDelete }) {
 
     const toggleCommentsView = () => {
         setShowComments(!showComments);
+    };
+
+    const handlePrevMedia = () => {
+        setCurrentMediaIndex(prev => (prev === 0 ? mediaFiles.length - 1 : prev - 1));
+    };
+
+    const handleNextMedia = () => {
+        setCurrentMediaIndex(prev => (prev === mediaFiles.length - 1 ? 0 : prev + 1));
     };
 
     const handleDelete = async () => {
@@ -110,8 +142,8 @@ export default function PostCard({ post, onDelete }) {
         <div className="post-card">
             <div className="post-header">
                 <div className="post-header-left">
-                    <img src={post.avatar} className="post-avatar" alt="avatar" />
-                    <span className="post-username">{post.username}</span>
+                    <img src={avatarUrl} className="post-avatar" alt="avatar" />
+                    <span className="post-username">{displayUsername}</span>
                 </div>
                 {isOwner && (
                     <button className="delete-post-btn" onClick={handleDelete} title="Delete post">
@@ -120,7 +152,28 @@ export default function PostCard({ post, onDelete }) {
                 )}
             </div>
 
-            <img src={post.image} className="post-image" alt="post content" />
+            {/* Media karousel */}
+            <div className="post-media-container">
+                <img 
+                    src={mediaFiles[currentMediaIndex].fileUrl} 
+                    className="post-image" 
+                    alt="post content" 
+                />
+                
+                {hasMultipleMedia && (
+                    <>
+                        <button className="carousel-btn carousel-btn-prev" onClick={handlePrevMedia}>
+                            ‹
+                        </button>
+                        <button className="carousel-btn carousel-btn-next" onClick={handleNextMedia}>
+                            ›
+                        </button>
+                        <div className="carousel-indicator">
+                            {currentMediaIndex + 1} / {mediaFiles.length}
+                        </div>
+                    </>
+                )}
+            </div>
 
             <div className="post-actions">
                 <button onClick={handleLike} className="like-btn">
@@ -134,7 +187,7 @@ export default function PostCard({ post, onDelete }) {
             <p className="post-likes">{likes} likes</p>
 
             <p className="post-caption">
-                <b>{post.username}</b> {post.caption}
+                <b>{displayUsername}</b> {post.caption}
             </p>
 
             {/* link za gledanje svih komentara */}
@@ -154,7 +207,7 @@ export default function PostCard({ post, onDelete }) {
                             {comments.map((comment) => (
                                 <div key={comment.id} className="comment-item">
                                     <span className="comment-username">
-                                        <b>User {comment.userId}</b>
+                                        <b>{commentUsernames[comment.userId] || `user${comment.userId}`}</b>
                                     </span>
                                     <span className="comment-content">{comment.content}</span>
                                 </div>
