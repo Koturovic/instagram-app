@@ -86,7 +86,7 @@ class AuthServiceTest {
             when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
             when(profileRepository.existsByUsername(request.getUsername())).thenReturn(false);
             when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
-            when(jwtService.generateToken(any())).thenReturn("jwt-token-123");
+            when(jwtService.generateToken(any(), any())).thenReturn("jwt-token-123");
 
             var response = authService.register(request);
 
@@ -151,7 +151,7 @@ class AuthServiceTest {
 
             when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(null);
             when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(user));
-            when(jwtService.generateToken(any())).thenReturn("jwt-token-login");
+            when(jwtService.generateToken(any(), any())).thenReturn("jwt-token-login");
 
 
             var response = authService.login(request);
@@ -159,7 +159,7 @@ class AuthServiceTest {
             assertThat(response).isNotNull();
             assertThat(response.getToken()).isNotBlank().isEqualTo("jwt-token-login");
             verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
-            verify(jwtService).generateToken(any(UserDetailsAdapter.class));
+            verify(jwtService).generateToken(any(), any());
         }
 
 

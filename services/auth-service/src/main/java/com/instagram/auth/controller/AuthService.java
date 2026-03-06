@@ -5,6 +5,7 @@ import com.instagram.auth.User;
 import com.instagram.auth.config.JwtService;
 import com.instagram.auth.config.UserDetailsAdapter;
 import com.instagram.auth.exception.EmailAlreadyExistsException;
+import com.instagram.auth.exception.ProfileNotFoundException;
 import com.instagram.auth.exception.UsernameAlreadyExistsException;
 import com.instagram.auth.repository.ProfileRepository;
 import com.instagram.auth.repository.UserRepository;
@@ -14,6 +15,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -48,8 +52,10 @@ public class AuthService {
                 .build();
         profileRepository.save(profile);
 
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("userId", user.getId());
         UserDetails userDetails = new UserDetailsAdapter(user);
-        var jwtToken = jwtService.generateToken(userDetails);
+        var jwtToken = jwtService.generateToken(extraClaims, userDetails);
         return AuthenticationResponse.builder().token(jwtToken).build();
     }
 
@@ -60,19 +66,42 @@ public class AuthService {
                         request.getPassword()));
         var user = userRepository.findByEmail(request.getEmail()).orElseThrow();
 
+        // dodajemo userId u token kao extra claim
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("userId", user.getId());
+
         UserDetails userDetails = new UserDetailsAdapter(user);
-        var jwtToken = jwtService.generateToken(userDetails);
+        var jwtToken = jwtService.generateToken(extraClaims, userDetails);
 
         return AuthenticationResponse.builder().token(jwtToken).build();
     }
 
-    public String validateToken(String token) {
+    public ValidateResponse validateToken(String token) {
         String email = jwtService.extractUsername(token);
         var user = userRepository.findByEmail(email).orElseThrow();
         UserDetails userDetails = new UserDetailsAdapter(user);
         if (!jwtService.isTokenValid(token, userDetails)) {
             throw new RuntimeException("Token nije validan");
         }
-        return email;
+        return ValidateResponse.builder()
+                .userId(user.getId())
+                .email(email)
+                .build();
+    }
+
+    /**
+     * Dohvata profil po userId (npr. user-service).
+     * GET /api/v1/auth/profiles/{userId} → { userId, username, isPrivate }.
+     */
+    public ProfileResponse getProfileByUserId(Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ProfileNotFoundException("User not found"));
+        Profile profile = profileRepository.findByUser_Id(userId)
+                .orElseThrow(() -> new ProfileNotFoundException("Profile not found"));
+        return ProfileResponse.builder()
+                .userId(user.getId())
+                .username(profile.getUsername())
+                .isPrivate(profile.getIsPrivate())
+                .build();
     }
 }

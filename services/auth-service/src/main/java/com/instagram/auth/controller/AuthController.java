@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,12 +40,20 @@ public class AuthController {
 
         // 2.pozovemo servis da validira token
         try {
-            String username = service.validateToken(token);
-            return ResponseEntity.ok(username);
+            ValidateResponse response = service.validateToken(token);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+    }
 
+    /**
+     * Dohvata profil po userId – za user-service (follow/block logika).
+     * 200 → { userId, username, isPrivate }; 404 ako user/profile ne postoji.
+     */
+    @GetMapping("/profiles/{userId}")
+    public ResponseEntity<ProfileResponse> getProfileByUserId(@PathVariable Integer userId) {
+        return ResponseEntity.ok(service.getProfileByUserId(userId));
     }
 }
 
