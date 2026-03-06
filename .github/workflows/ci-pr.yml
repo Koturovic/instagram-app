@@ -7,7 +7,7 @@ on:
 
 jobs:
   test:
-    name: Unit tests (auth-service)
+    name: Unit tests (auth & user service)
     runs-on: ubuntu-latest
 
     steps:
@@ -21,6 +21,10 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Run tests
+      - name: Run auth-service tests
         working-directory: services/auth-service
+        run: ./mvnw test -B
+
+      - name: Run user-service tests
+        working-directory: services/user-service
         run: ./mvnw test -B

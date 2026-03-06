@@ -23,8 +23,12 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Run tests
+      - name: Run auth-service tests
         working-directory: services/auth-service
+        run: ./mvnw test -B
+
+      - name: Run user-service tests
+        working-directory: services/user-service
         run: ./mvnw test -B
 
       # 2. Verzija u formatu yyyymmdd-hhmmss
@@ -48,3 +52,13 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/auth-service:${{ steps.tag.outputs.value }}
             ${{ secrets.DOCKER_USERNAME }}/auth-service:latest
+
+      # 5. Build i push user-service image
+      - name: Build and push user-service
+        uses: docker/build-push-action@v6
+        with:
+          context: ./services/user-service
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/user-service:${{ steps.tag.outputs.value }}
+            ${{ secrets.DOCKER_USERNAME }}/user-service:latest
