@@ -26,5 +26,5 @@ jobs:
         run: ./mvnw test -B
 
       - name: Run user-service tests
-        working-directory: src/
+        working-directory: .
         run: ./mvnw test -B
