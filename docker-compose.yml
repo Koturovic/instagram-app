@@ -16,7 +16,7 @@ services:
     networks:
       - instagram-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      test: [ "CMD-SHELL", "pg_isready -U auth_user -d auth_db" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -29,8 +29,8 @@ services:
     container_name: instagram-postgres-user
     environment:
       POSTGRES_DB: user_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: user_service
+      POSTGRES_PASSWORD: user_service_pass
     ports:
       - "5434:5432"
     volumes:
@@ -38,7 +38,7 @@ services:
     networks:
       - instagram-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user_service -d user_db"]
+      test: [ "CMD-SHELL", "pg_isready -U user_service -d user_db" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -121,35 +121,154 @@ services:
     depends_on:
       - postgres-auth
 
+  # -------------------------------------------------------------------------
+  # PostgreSQL za post-service
+  # -------------------------------------------------------------------------
+  postgres-post:
+    image: postgres:16-alpine
+    container_name: instagram-postgres-post
+    environment:
+      POSTGRES_DB: post_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: sifra
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres-post-data:/var/lib/postgresql/data
+    networks:
+      - instagram-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d post_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------------------
+  # PostgreSQL za interaction-service
+  # -------------------------------------------------------------------------
+  postgres-interaction:
+    image: postgres:16-alpine
+    container_name: instagram-postgres-interaction
+    environment:
+      POSTGRES_DB: interaction_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres-interaction-data:/var/lib/postgresql/data
+    networks:
+      - instagram-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d interaction_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------------------
+  # PostgreSQL za feed-service
+  # -------------------------------------------------------------------------
+  postgres-feed:
+    image: postgres:16-alpine
+    container_name: instagram-postgres-feed
+    environment:
+      POSTGRES_DB: feed_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: sifra
+    ports:
+      - "5437:5432"
+    volumes:
+      - postgres-feed-data:/var/lib/postgresql/data
+    networks:
+      - instagram-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d feed_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------------------
+  # post-service (Spring Boot, port 8082)
+  # -------------------------------------------------------------------------
+  post-service:
+    build:
+      context: ./post-service
+      dockerfile: Dockerfile
+    container_name: instagram-post-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-post:5432/post_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: sifra
+      AUTH_SERVICE_URL: http://auth-service:8080
+    ports:
+      - "8082:8082"
+    networks:
+      - instagram-network
+    depends_on:
+      postgres-post:
+        condition: service_healthy
+
+  # -------------------------------------------------------------------------
+  # interaction-service (Spring Boot, port 8083)
+  # -------------------------------------------------------------------------
+  interaction-service:
+    build:
+      context: ./interaction-service
+      dockerfile: Dockerfile
+    container_name: instagram-interaction-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-interaction:5432/interaction_db
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+      AUTH_SERVICE_URL: http://auth-service:8080
+      APP_POST_SERVICE_URL: http://post-service:8082
+    ports:
+      - "8083:8083"
+    networks:
+      - instagram-network
+    depends_on:
+      postgres-interaction:
+        condition: service_healthy
+      post-service:
+        condition: service_started
+
+  # -------------------------------------------------------------------------
+  # feed-service (Spring Boot, port 8084)
+  # -------------------------------------------------------------------------
+  feed-service:
+    build:
+      context: ./feed-service
+      dockerfile: Dockerfile
+    container_name: instagram-feed-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-feed:5432/feed_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: sifra
+      AUTH_SERVICE_URL: http://auth-service:8080
+      APP_POST_SERVICE_URL: http://post-service:8082
+      APP_INTERACTION_SERVICE_URL: http://interaction-service:8083
+      APP_USER_SERVICE_URL: http://user-service:8081
+    ports:
+      - "8084:8084"
+    networks:
+      - instagram-network
+    depends_on:
+      postgres-feed:
+        condition: service_healthy
+      post-service:
+        condition: service_started
+      interaction-service:
+        condition: service_started
+
 volumes:
   postgres-auth-data:
   postgres-user-data:
+  postgres-post-data:
+  postgres-interaction-data:
+  postgres-feed-data:
   pgadmin-data:
+
 
 networks:
   instagram-network:
     driver: bridge
-
-
-# -----------------------------------------------
-# post-service (8082)
-# -----------------------------------------------
-
-
-
-
-
-
-# -----------------------------------------------
-# interactiion-service (8083)
-#------------------------------------------------
-
-
-
-# -----------------------------------------------
-# feed-service (8084)
-#------------------------------------------------
-
-
-
-
