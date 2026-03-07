@@ -1,0 +1,33 @@
+# Pokreće unit testove na svaki pull request prema main
+name: CI - Pull Request
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Unit tests (auth & user service)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Run auth-service tests
+        working-directory: services/auth-service
+        run: ./mvnw test -B
+
+      - name: Make root mvnw executable
+        run: chmod +x mvnw
+
+      - name: Run user-service tests
+        working-directory: .
+        run: ./mvnw test -B
