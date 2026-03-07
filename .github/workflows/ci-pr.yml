@@ -25,6 +25,9 @@ jobs:
         working-directory: services/auth-service
         run: ./mvnw test -B
 
+      - name: Make root mvnw executable
+        run: chmod +x mvnw
+
       - name: Run user-service tests
         working-directory: .
         run: ./mvnw test -B
