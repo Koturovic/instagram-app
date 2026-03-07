@@ -40,7 +40,20 @@ export default function Profile() {
         try {
             setLoading(true);
             setBackendUnavailable(false);
-            
+ 
+            // fetchovanje followers/following countera (user-service - 8081)
+            // mora biti nezavisno od post endpointa, da brojac ne ostane 0 ako posts call padne
+            try {
+                const [followers, following] = await Promise.all([
+                    getFollowersCount(targetUserId),
+                    getFollowingCount(targetUserId),
+                ]);
+                setFollowersCount(followers);
+                setFollowingCount(following);
+            } catch (err) {
+                console.error("Failed to fetch followers/following counters:", err?.response?.status, err);
+            }
+
             // fetchovanje user podataka (auth-service - 8080)
             const authProfile = await getProfileByUserId(targetUserId);
             setUser(prev => ({
@@ -51,19 +64,12 @@ export default function Profile() {
             }));
 
             // fetchovanje post-ova (post-service - 8082)
-            const postsRes = await apiClient.get(getUrl("POST", `/posts/user/${targetUserId}`));
-            setUserPosts(normalizePosts(postsRes.data));
-
-            // fetchovanje followers/following countera (user-service - 8081)
             try {
-                const followers = await getFollowersCount(targetUserId);
-                const following = await getFollowingCount(targetUserId);
-                setFollowersCount(followers);
-                setFollowingCount(following);
-            } catch (err) {
-                console.error("User service not available yet:", err);
-                // brojac je 0, sve dok servis ne bude AKTIVAN
-                // nakon refresh-a stranice, brojaci ce biti True
+                const postsRes = await apiClient.get(getUrl("POST", `/posts/user/${targetUserId}`));
+                setUserPosts(normalizePosts(postsRes.data));
+            } catch (postErr) {
+                console.error("Failed to fetch user posts:", postErr?.response?.status, postErr);
+                setUserPosts([]);
             }
 
         } catch (err) {

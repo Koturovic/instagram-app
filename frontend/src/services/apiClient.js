@@ -19,6 +19,15 @@ const apiClient = axios.create({
 
 // presretac = lepi token pre svakog slanja zahteva
 apiClient.interceptors.request.use((config) => {
+    const requestUrl = config.url || "";
+    const isPublicAuthEndpoint =
+        requestUrl.includes("/api/v1/auth/login") ||
+        requestUrl.includes("/api/v1/auth/register");
+
+    if (isPublicAuthEndpoint) {
+        return config;
+    }
+
     const token = localStorage.getItem("token");
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -29,12 +38,12 @@ apiClient.interceptors.request.use((config) => {
 // povezivanje razlicitih servisa 
 export const getUrl = (service, endpoint) => {
     const baseUrl = `${BASE_URL}:${PORTS[service]}`;
-    
+
     // auth-service i user-service imaju /api/v1/ prefix
     if (service === "AUTH" || service === "USER") {
         return `${baseUrl}/api/v1${endpoint}`;
     }
-    
+
     // ostali koriste /api/ prefix
     return `${baseUrl}/api${endpoint}`;
 };

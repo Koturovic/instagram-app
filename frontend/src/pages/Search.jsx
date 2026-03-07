@@ -9,11 +9,13 @@ export default function Search() {
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searched, setSearched] = useState(false);
+    const [followStates, setFollowStates] = useState({});
+    const [followLoading, setFollowLoading] = useState({});
     const navigate = useNavigate();
 
     const handleSearch = async (e) => {
         e.preventDefault();
-        
+
         if (!query.trim()) return;
 
         try {
@@ -30,15 +32,35 @@ export default function Search() {
     };
 
     const handleFollow = async (userId) => {
+        if (followStates[userId] === "requested" || followStates[userId] === "following") {
+            return;
+        }
+
         try {
-            await followUser(userId);
-            alert("Follow request sent!");
-            const data = await searchUsers(query);
-            setResults(data);
+            setFollowLoading((prev) => ({ ...prev, [userId]: true }));
+            const response = await followUser(userId);
+            const status = response?.followed === true ? "following" : "requested";
+            setFollowStates((prev) => ({ ...prev, [userId]: status }));
         } catch (err) {
             console.error("Follow error:", err);
             alert("Failed to send follow request");
+        } finally {
+            setFollowLoading((prev) => ({ ...prev, [userId]: false }));
         }
+    };
+
+    const getFollowButtonLabel = (userId) => {
+        if (followLoading[userId]) return "...";
+        if (followStates[userId] === "requested") return "Requested";
+        if (followStates[userId] === "following") return "Following";
+        return "Follow";
+    };
+
+    const getFollowButtonClassName = (userId) => {
+        const state = followStates[userId];
+        if (state === "requested") return "follow-btn requested";
+        if (state === "following") return "follow-btn following";
+        return "follow-btn";
     };
 
     return (
@@ -47,7 +69,7 @@ export default function Search() {
             <div className="search-container">
                 <div className="search-box">
                     <h2>Search Users</h2>
-                    
+
                     <form onSubmit={handleSearch} className="search-form">
                         <input
                             type="text"
@@ -90,7 +112,7 @@ export default function Search() {
                                             )}
                                         </div>
                                     </div>
-                                    
+
                                     <div className="user-actions">
                                         <button
                                             className="view-profile-btn"
@@ -99,10 +121,15 @@ export default function Search() {
                                             View Profile
                                         </button>
                                         <button
-                                            className="follow-btn"
+                                            className={getFollowButtonClassName(user.id)}
                                             onClick={() => handleFollow(user.id)}
+                                            disabled={
+                                                followLoading[user.id] ||
+                                                followStates[user.id] === "requested" ||
+                                                followStates[user.id] === "following"
+                                            }
                                         >
-                                            Follow
+                                            {getFollowButtonLabel(user.id)}
                                         </button>
                                     </div>
                                 </div>

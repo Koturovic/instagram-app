@@ -25,7 +25,7 @@ function Register() {
   const takenUsernames = ["admin", "testuser", "instagram", "root"];
 
   useEffect(() => {
-  document.title = "Register | Instagram";
+    document.title = "Register | Instagram";
   }, []);
 
   const handleChange = (e) => {
@@ -89,9 +89,12 @@ function Register() {
       alert("Registration successful!");
       navigate("/");
     } catch (err) {
-      console.error(err)
-      alert("Registration failed! Please try again.");
-      navigate("/")
+      console.error(err);
+      const backendMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        (typeof err?.response?.data === "string" ? err.response.data : null);
+      alert(backendMessage ? `Registration failed: ${backendMessage}` : "Registration failed! Please try again.");
     }
   };
 
@@ -128,7 +131,7 @@ function Register() {
           />
           {errors.username && <p className="error">{errors.username}</p>}
           {!usernameAvailable && (
-              <p className="error">Username is already taken</p> 
+            <p className="error">Username is already taken</p>
           )}
 
           <input

@@ -25,14 +25,22 @@ export const getFollowersCount = async (userId) => {
     const response = await apiClient.get(
         getUrl("USER", `/users/${userId}/followers/count`)
     );
-    return response.data?.count ?? 0;
+    const payload = response.data;
+    if (typeof payload === "number") return payload;
+    if (typeof payload?.count === "number") return payload.count;
+    if (typeof payload?.count === "string") return Number(payload.count) || 0;
+    return 0;
 };
 
 export const getFollowingCount = async (userId) => {
     const response = await apiClient.get(
         getUrl("USER", `/users/${userId}/following/count`)
     );
-    return response.data?.count ?? 0;
+    const payload = response.data;
+    if (typeof payload === "number") return payload;
+    if (typeof payload?.count === "number") return payload.count;
+    if (typeof payload?.count === "string") return Number(payload.count) || 0;
+    return 0;
 };
 
 export const acceptFollowRequest = async (requestId) => {
