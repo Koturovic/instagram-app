@@ -65,3 +65,21 @@ npm-debug.log
 *.class
 *.war
 *.ear
+
+# Instagram app (build / local)
+instagram-app
+
+### STS ###
+.apt_generated
+.springBeans
+.sts4-cache
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
