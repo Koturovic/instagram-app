@@ -16,8 +16,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -103,5 +105,25 @@ public class AuthService {
                 .username(profile.getUsername())
                 .isPrivate(profile.getIsPrivate())
                 .build();
+    }
+
+    /**
+     * Pretraga profila po username-u ili imenu/prezimenu (auth_db).
+     * GET /api/v1/auth/profiles/search?q=...
+     */
+    public List<ProfileSearchResponse> searchProfiles(String q) {
+        if (q == null || q.trim().isEmpty()) {
+            return List.of();
+        }
+        return profileRepository.searchByUsernameOrName(q.trim()).stream()
+                .map(p -> ProfileSearchResponse.builder()
+                        .userId(p.getUser().getId())
+                        .username(p.getUsername())
+                        .firstName(p.getUser().getFirstName())
+                        .lastName(p.getUser().getLastName())
+                        .profileImageUrl(p.getProfileImageUrl())
+                        .isPrivate(p.getIsPrivate())
+                        .build())
+                .collect(Collectors.toList());
     }
 }
