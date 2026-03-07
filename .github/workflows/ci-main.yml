@@ -28,7 +28,7 @@ jobs:
         run: ./mvnw test -B
 
       - name: Run user-service tests
-        working-directory: services/user-service
+        working-directory: src/
         run: ./mvnw test -B
 
       # 2. Verzija u formatu yyyymmdd-hhmmss
@@ -57,7 +57,7 @@ jobs:
       - name: Build and push user-service
         uses: docker/build-push-action@v6
         with:
-          context: ./services/user-service
+          context: .src/
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/user-service:${{ steps.tag.outputs.value }}
