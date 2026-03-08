@@ -1,35 +1,32 @@
-
-# build stage i kompajliranje
-# pocinje sa osnovnim imagaem koji sadrzi JDK 17 na Alpine Linuxu(najmanji i najlaksi Linux image)
+# ============================================
+# Build stage
+# ============================================
 FROM eclipse-temurin:17-jdk-alpine AS build
-
-#postavlja se radni direktorijum unutar containera na /app
 WORKDIR /app
 
-# kopira se Maven Wrapper (mvnw) i Maven Wrapper direktorijum (.mvn) u radni direktorijum containera
-COPY mvnw .
-COPY .mvn .mvn
-COPY pom.xml .
+# Copy Maven wrapper and pom.xml
+COPY .mvn/ .mvn/
+COPY mvnw pom.xml ./
 
-
-# chmod +x mvnw = čini mvnw izvršivim
-# ./mvnw dependency:go-offline = preuzima sve zavisnosti unaprijed (offline mode)
-# -B = batch mode (bez interakcije)
-# ZAŠTO? Zato što se zavisnosti mogu cachirati između buildova → brži builds
+# Download dependencies (cached layer)
 RUN chmod +x mvnw && ./mvnw dependency:go-offline -B
 
-
-# kpira se source code aplikacije u radni direktorijum containera
+# Copy source and build
 COPY src ./src
+RUN ./mvnw clean package -DskipTests -B
 
-# pakuje se aplikacija, preskačući testove (DskipTests) i koristeći batch mode (-B)
-RUN ./mvnw package -DskipTests -B
-
-
-# Drugi stage - kreiranje finalnog image-a koji će se koristiti za pokretanje aplikacije
+# ============================================
+# Runtime stage
+# ============================================
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
+# Create non-root user
+RUN addgroup -g 1001 -S appgroup && \
+    adduser -u 1001 -S appuser -G appgroup
+USER appuser
+
+# Copy JAR from build stage
 COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 8080
