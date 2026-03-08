@@ -1,0 +1,317 @@
+services:
+  # -------------------------------------------------------------------------
+  # PostgreSQL za auth-service
+  # -------------------------------------------------------------------------
+  postgres-auth:
+    image: postgres:16-alpine
+    container_name: instagram-postgres-auth
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-auth-data:/var/lib/postgresql/data
+    networks:
+      - instagram-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U auth_user -d auth_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------------------
+  # PostgreSQL za user-service
+  # -------------------------------------------------------------------------
+  postgres-user:
+    image: postgres:16-alpine
+    container_name: instagram-postgres-user
+    environment:
+      POSTGRES_DB: user_db
+      POSTGRES_USER: user_service
+      POSTGRES_PASSWORD: user_service_pass
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-user-data:/var/lib/postgresql/data
+    networks:
+      - instagram-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user_service -d user_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------------------
+  # auth-service (Spring Boot)
+  # -------------------------------------------------------------------------
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: instagram-auth-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-auth:5432/auth_db
+      SPRING_DATASOURCE_USERNAME: auth_user
+      SPRING_DATASOURCE_PASSWORD: auth_password
+      JWT_SECRET: ${JWT_SECRET:-ZGV2LXNlY3JldC1taW4tMzItYnl0ZXMtY2hhbmdlLW1lLTEy}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-3600000}
+    ports:
+      - "8080:8080"
+    networks:
+      - instagram-network
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+
+  # -------------------------------------------------------------------------
+  # user-service (Spring Boot, port 8081)
+  # -------------------------------------------------------------------------
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: instagram-user-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-user:5432/user_db
+      SPRING_DATASOURCE_USERNAME: user_service
+      SPRING_DATASOURCE_PASSWORD: user_service_pass
+      AUTH_SERVICE_URL: http://auth-service:8080
+    ports:
+      - "8081:8081"
+    networks:
+      - instagram-network
+    depends_on:
+      postgres-user:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  # -------------------------------------------------------------------------
+  # Frontend (React + Vite, served with nginx)
+  # -------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: instagram-frontend
+    ports:
+      - "5173:80"
+    networks:
+      - instagram-network
+    depends_on:
+      - auth-service
+
+  # -------------------------------------------------------------------------
+  # pgAdmin na portu 5051
+  # -------------------------------------------------------------------------
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: instagram-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5051:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - instagram-network
+    depends_on:
+      - postgres-auth
+
+  # -------------------------------------------------------------------------
+  # PostgreSQL za post-service
+  # -------------------------------------------------------------------------
+  postgres-post:
+    image: postgres:16-alpine
+    container_name: instagram-postgres-post
+    environment:
+      POSTGRES_DB: post_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: sifra
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres-post-data:/var/lib/postgresql/data
+    networks:
+      - instagram-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d post_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------------------
+  # PostgreSQL za interaction-service
+  # -------------------------------------------------------------------------
+  postgres-interaction:
+    image: postgres:16-alpine
+    container_name: instagram-postgres-interaction
+    environment:
+      POSTGRES_DB: interaction_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres-interaction-data:/var/lib/postgresql/data
+    networks:
+      - instagram-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d interaction_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------------------
+  # PostgreSQL za feed-service
+  # -------------------------------------------------------------------------
+  postgres-feed:
+    image: postgres:16-alpine
+    container_name: instagram-postgres-feed
+    environment:
+      POSTGRES_DB: feed_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: sifra
+    ports:
+      - "5437:5432"
+    volumes:
+      - postgres-feed-data:/var/lib/postgresql/data
+    networks:
+      - instagram-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d feed_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------------------
+  # post-service (Spring Boot, port 8082)
+  # -------------------------------------------------------------------------
+  post-service:
+    build:
+      context: ./post-service
+      dockerfile: Dockerfile
+    container_name: instagram-post-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-post:5432/post_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: sifra
+      AUTH_SERVICE_URL: http://auth-service:8080
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: admin
+      MINIO_SECRET_KEY: password
+      MINIO_PUBLIC_URL: http://localhost:9000
+    ports:
+      - "8082:8082"
+    networks:
+      - instagram-network
+    depends_on:
+      postgres-post:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+  # -------------------------------------------------------------------------
+  # interaction-service (Spring Boot, port 8083)
+  # -------------------------------------------------------------------------
+  interaction-service:
+    build:
+      context: ./interaction-service
+      dockerfile: Dockerfile
+    container_name: instagram-interaction-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-interaction:5432/interaction_db
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
+      AUTH_SERVICE_URL: http://auth-service:8080
+      APP_POST_SERVICE_URL: http://post-service:8082
+    ports:
+      - "8083:8083"
+    networks:
+      - instagram-network
+    depends_on:
+      postgres-interaction:
+        condition: service_healthy
+      post-service:
+        condition: service_started
+
+  # -------------------------------------------------------------------------
+  # feed-service (Spring Boot, port 8084)
+  # -------------------------------------------------------------------------
+  feed-service:
+    build:
+      context: ./feed-service
+      dockerfile: Dockerfile
+    container_name: instagram-feed-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-feed:5432/feed_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: sifra
+      AUTH_SERVICE_URL: http://auth-service:8080
+      APP_POST_SERVICE_URL: http://post-service:8082
+      APP_INTERACTION_SERVICE_URL: http://interaction-service:8083
+      APP_USER_SERVICE_URL: http://user-service:8081
+    ports:
+      - "8084:8084"
+    networks:
+      - instagram-network
+    depends_on:
+      postgres-feed:
+        condition: service_healthy
+      post-service:
+        condition: service_started
+      interaction-service:
+        condition: service_started
+
+  # -------------------------------------------------------------------------
+  # MinIO (object storage)
+  # -------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: instagram-minio
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - instagram-network
+
+  # -------------------------------------------------------------------------
+  # MinIO init (make bucket public)
+  # -------------------------------------------------------------------------
+  minio-init:
+    image: minio/mc:latest
+    container_name: instagram-minio-init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 admin password &&
+      mc mb -p local/instagram-media || true &&
+      mc anonymous set download local/instagram-media &&
+      exit 0
+      "
+    networks:
+      - instagram-network
+
+volumes:
+  postgres-auth-data:
+  postgres-user-data:
+  postgres-post-data:
+  postgres-interaction-data:
+  postgres-feed-data:
+  pgadmin-data:
+  minio-data:
+
+
+networks:
+  instagram-network:
+    driver: bridge
