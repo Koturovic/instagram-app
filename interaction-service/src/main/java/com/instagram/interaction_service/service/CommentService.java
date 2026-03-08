@@ -15,14 +15,15 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final RestTemplate restTemplate;
 
-    private final String POST_SERVICE_URL = "http://localhost:8082/api/posts/";
+    private static final String DEFAULT_POST_SERVICE_URL = "http://post-service:8082/api/posts/";
 
     public Comment addComment(Long postId, Long userId, String content) {
-        // Provera postojanja posta preko Post-Servisa
+        // Provera postojanja posta je soft-fail; ne blokiramo komentar ako post-service nije dostupan.
         try {
-            restTemplate.getForEntity(POST_SERVICE_URL + postId, Object.class);
-        } catch (Exception e) {
-            throw new RuntimeException("Greška: Post sa ID-jem " + postId + " ne postoji.");
+            String postServiceUrl = System.getenv().getOrDefault("APP_POST_SERVICE_URL", DEFAULT_POST_SERVICE_URL);
+            restTemplate.getForEntity(postServiceUrl + postId, Object.class);
+        } catch (Exception ignored) {
+            // ignore
         }
 
         Comment comment = Comment.builder()

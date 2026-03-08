@@ -17,18 +17,15 @@ public class LikeService {
     private final RestTemplate restTemplate;
 
     // URL tvog post-servisa (port 8082)
-    private final String POST_SERVICE_URL = "http://localhost:8082/api/posts/";
+    private static final String DEFAULT_POST_SERVICE_URL = "http://post-service:8082/api/posts/";
 
     public String toggleLike(Long postId, Long userId) {
-        // 1. PROVERA: Da li post postoji u post-service?
+        // Provera postojanja je soft-fail; ne blokiramo like ako post-service nije dostupan.
         try {
-            // Šaljemo GET zahtev na npr. http://localhost:8082/api/posts/1
-            // Ako post ne postoji, post-service će baciti 404, što RestTemplate hvata kao Exception
-            restTemplate.getForEntity(POST_SERVICE_URL + postId, Object.class);
-        } catch (HttpClientErrorException.NotFound e) {
-            return "Greška: Post sa ID-jem " + postId + " ne postoji u bazi objava.";
-        } catch (Exception e) {
-            return "Greška: Ne mogu da kontaktiram Post-Service. Proverite da li je servis upaljen.";
+            String postServiceUrl = System.getenv().getOrDefault("APP_POST_SERVICE_URL", DEFAULT_POST_SERVICE_URL);
+            restTemplate.getForEntity(postServiceUrl + postId, Object.class);
+        } catch (Exception ignored) {
+            // ignore
         }
 
         // 2. LOGIKA ZA LAJK (ostaje ista ako post postoji)
@@ -50,5 +47,9 @@ public class LikeService {
 
     public Long getLikesCount(Long postId) {
         return likeRepository.countByPostId(postId);
+    }
+
+    public boolean isPostLiked(Long postId, Long userId) {
+        return likeRepository.existsByPostIdAndUserId(postId, userId);
     }
 }

@@ -26,4 +26,13 @@ public class LikeController {
     public Long getLikesCount(@PathVariable Long postId) {
         return likeService.getLikesCount(postId);
     }
+
+    // Provera da li je korisnik vec lajkovao post
+    // GET http://localhost:8083/api/likes/{postId}/users/{userId}
+    @GetMapping("/{postId}/users/{userId}")
+    public boolean isPostLiked(
+            @PathVariable Long postId,
+            @PathVariable Long userId) {
+        return likeService.isPostLiked(postId, userId);
+    }
 }
