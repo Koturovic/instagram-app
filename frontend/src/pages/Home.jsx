@@ -41,7 +41,7 @@ export default function Home() {
     return (
         <>
             <Navbar />
-            <div style={{ maxWidth: "600px", margin: "0 auto" }}>
+            <div style={{ maxWidth: "600px", margin: "0 auto", paddingTop: "80px" }}>
                 {loading ? (
                     <p>Loading...</p>
                 ) : (

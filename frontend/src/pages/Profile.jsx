@@ -236,10 +236,15 @@ export default function Profile() {
                     ) : userPosts.length > 0 ? (
                         userPosts.map(post => (
                             <div key={post.id} className="grid-item">
-                                <img src={post.image} alt="user post" />
-                                <div className="grid-item-overlay">
-                                    <span>❤️ {post.likes}</span>
-                                </div>
+                                {post.mediaFiles?.[0]?.contentType?.startsWith("video/") ? (
+                                    <video
+                                        src={post.mediaFiles[0].fileUrl}
+                                        className="grid-item-media"
+                                        muted
+                                    />
+                                ) : (
+                                    <img src={post.image} alt="user post" />
+                                )}
                             </div>
                         ))
                     ) : (

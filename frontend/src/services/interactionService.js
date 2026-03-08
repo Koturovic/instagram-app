@@ -26,3 +26,10 @@ export const getComments = async (postId) => {
     const response = await apiClient.get(getUrl("INTERACTION", `/comments/${postId}`));
     return response.data;
 };
+
+export const isPostLiked = async (postId, userId) => {
+    const response = await apiClient.get(
+        getUrl("INTERACTION", `/likes/${postId}/users/${userId}`)
+    );
+    return response.data;
+};
