@@ -70,7 +70,7 @@ services:
   # -------------------------------------------------------------------------
   user-service:
     build:
-      context: ./services/user-service
+      context: .
       dockerfile: Dockerfile
     container_name: instagram-user-service
     environment:
@@ -200,6 +200,10 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: sifra
       AUTH_SERVICE_URL: http://auth-service:8080
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: admin
+      MINIO_SECRET_KEY: password
+      MINIO_PUBLIC_URL: http://localhost:9000
     ports:
       - "8082:8082"
     networks:
@@ -207,6 +211,8 @@ services:
     depends_on:
       postgres-post:
         condition: service_healthy
+      minio:
+        condition: service_started
 
   # -------------------------------------------------------------------------
   # interaction-service (Spring Boot, port 8083)
@@ -260,6 +266,42 @@ services:
       interaction-service:
         condition: service_started
 
+  # -------------------------------------------------------------------------
+  # MinIO (object storage)
+  # -------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: instagram-minio
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - instagram-network
+
+  # -------------------------------------------------------------------------
+  # MinIO init (make bucket public)
+  # -------------------------------------------------------------------------
+  minio-init:
+    image: minio/mc:latest
+    container_name: instagram-minio-init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 admin password &&
+      mc mb -p local/instagram-media || true &&
+      mc anonymous set download local/instagram-media &&
+      exit 0
+      "
+    networks:
+      - instagram-network
+
 volumes:
   postgres-auth-data:
   postgres-user-data:
@@ -267,6 +309,7 @@ volumes:
   postgres-interaction-data:
   postgres-feed-data:
   pgadmin-data:
+  minio-data:
 
 
 networks:
