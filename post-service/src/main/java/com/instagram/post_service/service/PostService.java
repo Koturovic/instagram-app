@@ -19,9 +19,15 @@ public class PostService {
     private final PostRepository postRepository;
     private final MinioClient minioClient; // Automatski ubačen preko config klase
     private static final String BUCKET_NAME = "instagram-media";
+    private static final String DEFAULT_MINIO_PUBLIC_URL = "http://localhost:9000";
+
+    private static String getMinioPublicUrl() {
+        String value = System.getenv("MINIO_PUBLIC_URL");
+        return (value == null || value.isBlank()) ? DEFAULT_MINIO_PUBLIC_URL : value;
+    }
 
     public List<Post> getAllPosts() {
-        return postRepository.findAll();
+        return postRepository.findAllByOrderByCreatedAtDesc();
     }
 
     public Post createPostWithMedia(String description, Long userId, List<MultipartFile> files) throws Exception {
@@ -33,6 +39,21 @@ public class PostService {
         if (!found) {
             minioClient.makeBucket(MakeBucketArgs.builder().bucket(BUCKET_NAME).build());
         }
+        String policy = "{"
+                + "\"Version\":\"2012-10-17\","
+                + "\"Statement\":[{"
+                + "\"Effect\":\"Allow\","
+                + "\"Principal\":\"*\","
+                + "\"Action\":[\"s3:GetObject\"],"
+                + "\"Resource\":[\"arn:aws:s3:::" + BUCKET_NAME + "/*\"]"
+                + "}]"
+                + "}";
+        minioClient.setBucketPolicy(
+                SetBucketPolicyArgs.builder()
+                        .bucket(BUCKET_NAME)
+                        .config(policy)
+                        .build()
+        );
 
         // 3. Kreiraj objekat posta
         Post post = Post.builder()
@@ -61,8 +82,9 @@ public class PostService {
             );
 
             // Čuvanje URL-a (MinIO adresa) u bazu
+            String publicUrl = getMinioPublicUrl();
             PostMedia media = PostMedia.builder()
-                    .fileUrl("http://localhost:9000/" + BUCKET_NAME + "/" + fileName)
+                    .fileUrl(publicUrl + "/" + BUCKET_NAME + "/" + fileName)
                     .contentType(file.getContentType())
                     .post(post)
                     .build();
@@ -73,7 +95,7 @@ public class PostService {
     }
 
     public List<Post> getPostsByUserId(Long userId) {
-        return postRepository.findByUserId(userId);
+        return postRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
     @Transactional
@@ -136,8 +158,9 @@ public class PostService {
                                 .build()
                 );
 
+                String publicUrl = getMinioPublicUrl();
                 PostMedia media = PostMedia.builder()
-                        .fileUrl("http://localhost:9000/" + BUCKET_NAME + "/" + fileName)
+                        .fileUrl(publicUrl + "/" + BUCKET_NAME + "/" + fileName)
                         .contentType(file.getContentType())
                         .post(post)
                         .build();
