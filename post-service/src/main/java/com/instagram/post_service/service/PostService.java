@@ -119,6 +119,11 @@ public class PostService {
         postRepository.delete(post);
     }
 
+    public Post getPostById(Long id) {
+        return postRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Post sa ID-jem " + id + " nije pronađen!"));
+    }
+
     @Transactional
     public Post updatePost(Long postId, String description, List<MultipartFile> files) throws Exception {
         Post post = postRepository.findById(postId)
