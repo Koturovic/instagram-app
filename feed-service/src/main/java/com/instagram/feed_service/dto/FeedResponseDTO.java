@@ -15,5 +15,6 @@ public class FeedResponseDTO {
     private Long userId;
     private String description;
     private Long likesCount;
-    private List<Object> recentComments; // Koristimo Object jer će stići kao lista JSON-a
+    private List<Object> recentComments;
+    private List<Object> mediaFiles;
 }
