@@ -35,7 +35,8 @@ apiClient.interceptors.request.use((config) => {
     }
 
     const token = localStorage.getItem("token");
-    if (token) {
+    const looksLikeJwt = token && token.split(".").length === 3;
+    if (looksLikeJwt) {
         config.headers.Authorization = `Bearer ${token}`;
     }
     return config;

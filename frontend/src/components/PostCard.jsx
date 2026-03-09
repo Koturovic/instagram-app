@@ -29,8 +29,12 @@ export default function PostCard({ post, onDelete }) {
     const currentUserId = getUserIdFromToken();
     const fallbackUsername = post.userId ? `user${post.userId}` : "Unknown user";
     const displayUsername = resolvedUsername || post.username || fallbackUsername;
+    const fallbackUsername = post.userId ? `user${post.userId}` : "Unknown user";
+    const displayUsername = resolvedUsername || post.username || fallbackUsername;
     const avatarUrl = post.avatar || "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg";
     
+    const mediaFiles = post.mediaFiles && post.mediaFiles.length > 0
+        ? post.mediaFiles
     const mediaFiles = post.mediaFiles && post.mediaFiles.length > 0
         ? post.mediaFiles
         : [{ fileUrl: post.image || "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=800&auto=format&fit=crop" }];
@@ -322,6 +326,19 @@ export default function PostCard({ post, onDelete }) {
                         alt="post content" 
                     />
                 )}
+                {mediaFiles[currentMediaIndex].contentType?.startsWith("video/") ? (
+                    <video
+                        src={mediaFiles[currentMediaIndex].fileUrl}
+                        className="post-image"
+                        controls
+                    />
+                ) : (
+                    <img 
+                        src={mediaFiles[currentMediaIndex].fileUrl} 
+                        className="post-image" 
+                        alt="post content" 
+                    />
+                )}
                 
                 {hasMultipleMedia && (
                     <>
@@ -372,6 +389,7 @@ export default function PostCard({ post, onDelete }) {
             {/* link za gledanje svih komentara */}
             {!showComments && (
                 <button className="view-comments-btn" onClick={toggleCommentsView}>
+                    View comments
                     View comments
                 </button>
             )}

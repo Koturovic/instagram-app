@@ -2,6 +2,7 @@
     max-width: 935px;
     margin: 0 auto;
     padding: 90px 20px 30px;
+    padding: 90px 20px 30px;
 }
 
 .profile-notice {
@@ -230,6 +231,14 @@
 }
 
 .grid-item img {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.grid-item video,
+.grid-item-media {
     position: absolute;
     width: 100%;
     height: 100%;
