@@ -7,12 +7,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -66,6 +69,27 @@ public class AuthController {
     @GetMapping("/profiles/search")
     public ResponseEntity<List<ProfileSearchResponse>> searchProfiles(@RequestParam(defaultValue = "") String q) {
         return ResponseEntity.ok(service.searchProfiles(q));
+    }
+
+    /**
+     * Ažurira profil korisnika (ime, prezime, username, bio, privatnost + opciono slika).
+     * PUT /api/v1/auth/profiles/{userId}
+     * Content-Type: multipart/form-data
+     */
+    @PutMapping(value = "/profiles/{userId}", consumes = "multipart/form-data")
+    public ResponseEntity<ProfileResponse> updateProfile(
+            @PathVariable Integer userId,
+            @RequestPart(value = "firstName") String firstName,
+            @RequestPart(value = "lastName") String lastName,
+            @RequestPart(value = "username") String username,
+            @RequestPart(value = "bio", required = false) String bio,
+            @RequestPart(value = "isPrivate", required = false) String isPrivateStr,
+            @RequestPart(value = "profileImage", required = false) MultipartFile profileImage) {
+        
+        Boolean isPrivate = isPrivateStr != null ? Boolean.parseBoolean(isPrivateStr) : null;
+        return ResponseEntity.ok(
+            service.updateProfile(userId, firstName, lastName, username, bio, isPrivate, profileImage)
+        );
     }
 }
 
