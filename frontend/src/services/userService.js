@@ -50,8 +50,18 @@ export const acceptFollowRequest = async (requestId) => {
     return response.data;
 };
 
-export const rejectFollowRequest = async () => {
-    throw new Error("Reject follow request endpoint is not implemented in user-service yet.");
+export const rejectFollowRequest = async (requestId) => {
+    const response = await apiClient.post(
+        getUrl("USER", `/users/follow-request/${requestId}/reject`)
+    );
+    return response.data;
+};
+
+export const getPendingFollowRequests = async () => {
+    const response = await apiClient.get(
+        getUrl("USER", `/follow-requests/pending`)
+    );
+    return response.data;
 };
 
 export const blockUser = async (targetUserId) => {

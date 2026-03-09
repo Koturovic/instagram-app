@@ -38,3 +38,11 @@ export async function getUsernameById(userId) {
         return `user${userId}`; 
     }
 }
+
+export async function updateProfile(userId, profileData) {
+    const response = await apiClient.put(
+        getUrl("AUTH", `/auth/profiles/${userId}`),
+        profileData
+    );
+    return response.data;
+}

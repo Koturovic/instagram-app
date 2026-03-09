@@ -10,15 +10,21 @@ const PORTS = {
 
 const BASE_URL = "http://localhost";
 
-// osnovni config za axios klijenta (sve zahteve saljemo preko tokena)
-const apiClient = axios.create({
-    headers: {
-        "Content-Type": "application/json",
-    },
-});
+// Osnovni axios klijent. Content-Type ne forsiramo globalno:
+// - JSON za obične objekte Axios postavlja sam
+// - multipart/form-data za FormData postavlja browser sa boundary vrednošću
+const apiClient = axios.create();
 
 // presretac = lepi token pre svakog slanja zahteva
 apiClient.interceptors.request.use((config) => {
+    // For FormData requests (file upload), let Axios/browser set multipart boundary.
+    if (config.data instanceof FormData) {
+        if (config.headers) {
+            delete config.headers["Content-Type"];
+            delete config.headers["content-type"];
+        }
+    }
+
     const requestUrl = config.url || "";
     const isPublicAuthEndpoint =
         requestUrl.includes("/api/v1/auth/login") ||

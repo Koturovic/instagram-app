@@ -51,3 +51,15 @@ export const deletePost = async (postId) => {
     const response = await apiClient.delete(getUrl("POST", `/posts/${postId}`));
     return response.data;
 };
+
+export const updatePostDescription = async (postId, description) => {
+    const formData = new FormData();
+    formData.append("description", description);
+
+    const response = await apiClient.put(
+        getUrl("POST", `/posts/${postId}`),
+        formData
+    );
+
+    return response.data;
+};

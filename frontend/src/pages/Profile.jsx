@@ -1,16 +1,18 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import EditProfileModal from "../components/EditProfileModal";
+import PostDetailModal from "../components/PostDetailModal";
 import apiClient, { getUrl } from "../services/apiClient";
 import { getProfileByUserId } from "../services/authService";
 import { getUserIdFromToken } from "../utils/auth";
 import { normalizePosts } from "../utils/postMapper";
-import { followUser, unfollowUser, getFollowersCount, getFollowingCount, blockUser, unblockUser } from "../services/userService";
+import { POST_CAPTION_PREVIEW_LINES } from "../constants/postLimits";
+import { followUser, unfollowUser, getFollowersCount, getFollowingCount, blockUser, unblockUser, acceptFollowRequest, rejectFollowRequest } from "../services/userService";
 import "./Profile.css";
 
 export default function Profile() {
-    const EDIT_PROFILE_ENABLED = false;
+    const EDIT_PROFILE_ENABLED = true;
     const { userId: profileUserId } = useParams(); // id korisnika iz url-a
     const currentUserId = getUserIdFromToken(); // ulogovani korisnik
     const hasInvalidProfileParam = Boolean(profileUserId) && !/^\d+$/.test(profileUserId);
@@ -34,43 +36,78 @@ export default function Profile() {
     const [isBlocked, setIsBlocked] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isPostDetailOpen, setIsPostDetailOpen] = useState(false);
+    const [selectedPost, setSelectedPost] = useState(null);
+    const [selectedPostIndex, setSelectedPostIndex] = useState(0);
     const [backendUnavailable, setBackendUnavailable] = useState(false);
+    const [isBioExpanded, setIsBioExpanded] = useState(false);
+    const [isBioOverflowing, setIsBioOverflowing] = useState(false);
+    const bioRef = useRef(null);
+    const [pendingFollowRequests, setPendingFollowRequests] = useState([]);
+    const [loadingFollowRequests, setLoadingFollowRequests] = useState(false);
 
     const fetchProfileData = useCallback(async () => {
         try {
             setLoading(true);
             setBackendUnavailable(false);
- 
-            // fetchovanje followers/following countera (user-service - 8081)
-            // mora biti nezavisno od post endpointa, da brojac ne ostane 0 ako posts call padne
-            try {
-                const [followers, following] = await Promise.all([
-                    getFollowersCount(targetUserId),
-                    getFollowingCount(targetUserId),
-                ]);
-                setFollowersCount(followers);
-                setFollowingCount(following);
-            } catch (err) {
-                console.error("Failed to fetch followers/following counters:", err?.response?.status, err);
-            }
-
+            
             // fetchovanje user podataka (auth-service - 8080)
             const authProfile = await getProfileByUserId(targetUserId);
             setUser(prev => ({
                 ...prev,
                 userId: authProfile.userId,
                 username: authProfile.username || "",
+                firstName: authProfile.firstName || "",
+                lastName: authProfile.lastName || "",
+                bio: authProfile.bio || "",
+                profileImageUrl: authProfile.profileImageUrl || "",
                 isPrivate: Boolean(authProfile.isPrivate),
             }));
 
             // fetchovanje post-ova (post-service - 8082)
+            const postsRes = await apiClient.get(getUrl("POST", `/posts/user/${targetUserId}`));
+            let posts = normalizePosts(postsRes.data);
+
+            // Fetch avatara za sve korisnike iz postova
+            const uniqueUserIds = [...new Set(posts.map(p => p.userId))];
             try {
-                const postsRes = await apiClient.get(getUrl("POST", `/posts/user/${targetUserId}`));
-                setUserPosts(normalizePosts(postsRes.data));
-            } catch (postErr) {
-                console.error("Failed to fetch user posts:", postErr?.response?.status, postErr);
-                setUserPosts([]);
+                const profilePromises = uniqueUserIds.map(uid => getProfileByUserId(uid).catch(() => null));
+                const profiles = await Promise.all(profilePromises);
+                const profileMap = {};
+                profiles.forEach((profile, idx) => {
+                    if (profile) {
+                        profileMap[uniqueUserIds[idx]] = {
+                            avatar: profile.profileImageUrl || "",
+                            username: profile.username || ""
+                        };
+                    }
+                });
+
+                // Ažuriraj postove sa avatarima
+                posts = posts.map(post => ({
+                    ...post,
+                    avatar: profileMap[post.userId]?.avatar || post.avatar,
+                    username: profileMap[post.userId]?.username || post.username
+                }));
+            } catch (err) {
+                console.error("Error fetching avatars:", err);
             }
+
+            setUserPosts(posts);
+
+            // Učitavanje postova ne sme da čeka user-service brojače.
+            // Brojače osvežavamo odvojeno da profil ne ostane na "Loading posts...".
+            Promise.all([
+                getFollowersCount(targetUserId),
+                getFollowingCount(targetUserId)
+            ])
+                .then(([followers, following]) => {
+                    setFollowersCount(followers);
+                    setFollowingCount(following);
+                })
+                .catch((err) => {
+                    console.error("User service not available yet:", err);
+                });
 
         } catch (err) {
             console.error("Error fetching profile data:", err);
@@ -87,6 +124,55 @@ export default function Profile() {
             fetchProfileData();
         }
     }, [targetUserId, fetchProfileData]);
+
+    useEffect(() => {
+        setIsBioExpanded(false);
+    }, [targetUserId, user.bio]);
+
+    // Učitaj pending follow requests samo za own profil
+    useEffect(() => {
+        if (!isOwnProfile) {
+            setPendingFollowRequests([]);
+            return;
+        }
+
+        const fetchPendingRequests = async () => {
+            try {
+                setLoadingFollowRequests(true);
+                const response = await apiClient.get(getUrl("USER", "/follow-requests/pending"));
+                setPendingFollowRequests(response.data || []);
+            } catch (err) {
+                console.error("Error fetching pending follow requests:", err);
+                setPendingFollowRequests([]);
+            } finally {
+                setLoadingFollowRequests(false);
+            }
+        };
+
+        fetchPendingRequests();
+    }, [isOwnProfile, targetUserId]);
+
+    useEffect(() => {
+        if (isBioExpanded) {
+            return;
+        }
+
+        const bioElement = bioRef.current;
+        if (!bioElement) {
+            setIsBioOverflowing(false);
+            return;
+        }
+
+        const measureOverflow = () => {
+            setIsBioOverflowing(bioElement.scrollHeight > bioElement.clientHeight + 1);
+        };
+
+        measureOverflow();
+        window.addEventListener("resize", measureOverflow);
+        return () => {
+            window.removeEventListener("resize", measureOverflow);
+        };
+    }, [user.bio, isBioExpanded, targetUserId]);
 
     const handleFollowToggle = async () => {
         try {
@@ -114,7 +200,19 @@ export default function Profile() {
     };
 
     const handleProfileUpdate = (updatedUser) => {
-        setUser(updatedUser);
+        // Ažurira sve poljea sa backend response-a
+        setUser(prev => ({
+            ...prev,
+            userId: updatedUser.userId,
+            username: updatedUser.username || "",
+            firstName: updatedUser.firstName || "",
+            lastName: updatedUser.lastName || "",
+            bio: updatedUser.bio || "",
+            profileImageUrl: updatedUser.profileImageUrl || "",
+            isPrivate: Boolean(updatedUser.isPrivate)
+        }));
+        // Sada učitaj postove ponovo jer se korisnik mogao promeniti
+        fetchProfileData();
     };
 
     const handleBlockToggle = async () => {
@@ -136,6 +234,62 @@ export default function Profile() {
         } catch (err) {
             console.error("Block/Unblock error:", err);
             alert("Action failed. User service might not be available.");
+        }
+    };
+
+    const handleOpenPostDetail = (post, index) => {
+        setSelectedPost(post);
+        setSelectedPostIndex(index);
+        setIsPostDetailOpen(true);
+    };
+
+    const handleClosePostDetail = () => {
+        setIsPostDetailOpen(false);
+        setSelectedPost(null);
+        setSelectedPostIndex(0);
+    };
+
+    const handleNavigatePost = (newIndex) => {
+        if (newIndex >= 0 && newIndex < userPosts.length) {
+            setSelectedPost(userPosts[newIndex]);
+            setSelectedPostIndex(newIndex);
+        }
+    };
+
+    const handlePostDelete = (postId) => {
+        // Uklanja post iz grid-a nakon brisanja
+        setUserPosts(prev => prev.filter(post => post.id !== postId));
+    };
+
+    const handlePostUpdate = (updatedPost) => {
+        // Ažurira post u listi nakon editovanja caption-a
+        setUserPosts(prev => prev.map(p => p.id === updatedPost.id ? { ...p, caption: updatedPost.caption } : p));
+        setSelectedPost(prev => prev?.id === updatedPost.id ? { ...prev, caption: updatedPost.caption } : prev);
+    };
+
+    const handleAcceptFollowRequest = async (requestId, requesterUserId) => {
+        try {
+            await acceptFollowRequest(requestId);
+            // Ukloni prihvaćeni zahtev iz liste
+            setPendingFollowRequests(prev => prev.filter(req => req.requestId !== requestId));
+            // Ažuriraj brojač followers-a
+            setFollowersCount(prev => prev + 1);
+            alert("Follow request accepted!");
+        } catch (err) {
+            console.error("Error accepting follow request:", err);
+            alert("Failed to accept follow request");
+        }
+    };
+
+    const handleRejectFollowRequest = async (requestId) => {
+        try {
+            await rejectFollowRequest(requestId);
+            // Ukloni odbijeni zahtev iz liste
+            setPendingFollowRequests(prev => prev.filter(req => req.requestId !== requestId));
+            alert("Follow request rejected!");
+        } catch (err) {
+            console.error("Error rejecting follow request:", err);
+            alert("Failed to reject follow request");
         }
     };
 
@@ -210,11 +364,60 @@ export default function Profile() {
 
                         <div className="profile-bio">
                             <b>{user.firstName} {user.lastName}</b>
-                            <p>{user.bio || "No bio yet"}</p>
+                            <p
+                                ref={bioRef}
+                                className={`profile-bio-text ${!isBioExpanded ? "collapsed" : ""}`}
+                                style={{ WebkitLineClamp: POST_CAPTION_PREVIEW_LINES }}
+                            >
+                                {user.bio || "No bio yet"}
+                            </p>
+                            {!isBioExpanded && isBioOverflowing && (
+                                <button
+                                    type="button"
+                                    className="profile-bio-expand-btn"
+                                    onClick={() => setIsBioExpanded(true)}
+                                >
+                                    See more
+                                </button>
+                            )}
                             {user.isPrivate && <span className="private-badge">This is private account.</span>}
                         </div>
                     </section>
                 </header>
+
+                {isOwnProfile && pendingFollowRequests.length > 0 && (
+                    <section className="follow-requests-section">
+                        <h3 className="follow-requests-title">Follow Requests ({pendingFollowRequests.length})</h3>
+                        <div className="follow-requests-list">
+                            {pendingFollowRequests.map(request => (
+                                <div key={request.requestId} className="follow-request-item">
+                                    <div className="follow-request-user">
+                                        <img 
+                                            src={request.requesterProfileImage || "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg"}
+                                            alt={request.requesterUsername}
+                                            className="follow-request-avatar"
+                                        />
+                                        <span className="follow-request-username">{request.requesterUsername}</span>
+                                    </div>
+                                    <div className="follow-request-actions">
+                                        <button 
+                                            className="follow-request-accept-btn"
+                                            onClick={() => handleAcceptFollowRequest(request.requestId, request.requesterUserId)}
+                                        >
+                                            Accept
+                                        </button>
+                                        <button 
+                                            className="follow-request-reject-btn"
+                                            onClick={() => handleRejectFollowRequest(request.requestId)}
+                                        >
+                                            Reject
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
                 <hr className="profile-divider" />
 
@@ -234,12 +437,21 @@ export default function Profile() {
                             <p>Follow this account to see their posts</p>
                         </div>
                     ) : userPosts.length > 0 ? (
-                        userPosts.map(post => (
-                            <div key={post.id} className="grid-item">
-                                <img src={post.image} alt="user post" />
-                                <div className="grid-item-overlay">
-                                    <span>❤️ {post.likes}</span>
-                                </div>
+                        userPosts.map((post, index) => (
+                            <div 
+                                key={post.id} 
+                                className="grid-item"
+                                onClick={() => handleOpenPostDetail(post, index)}
+                            >
+                                {post.mediaFiles?.[0]?.contentType?.startsWith("video/") ? (
+                                    <video
+                                        src={post.mediaFiles[0].fileUrl}
+                                        className="grid-item-media"
+                                        muted
+                                    />
+                                ) : (
+                                    <img src={post.image} alt="user post" />
+                                )}
                             </div>
                         ))
                     ) : (
@@ -255,6 +467,17 @@ export default function Profile() {
                 onClose={() => setIsEditModalOpen(false)}
                 currentUser={user}
                 onUpdate={handleProfileUpdate}
+            />
+
+            <PostDetailModal
+                post={selectedPost}
+                isOpen={isPostDetailOpen}
+                onClose={handleClosePostDetail}
+                onDelete={handlePostDelete}
+                onUpdate={handlePostUpdate}
+                allPosts={userPosts}
+                currentIndex={selectedPostIndex}
+                onNavigate={handleNavigatePost}
             />
         </>
     );
