@@ -31,8 +31,11 @@ public class Profile {
 	@Builder.Default
 	private Boolean isPrivate = false;
 
-	@Column(name = "profile_image_url")
+	@Column(name = "profile_image_url", columnDefinition = "TEXT")
 	private String profileImageUrl;
+
+	@Column(name = "bio", columnDefinition = "TEXT")
+	private String bio;
 
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
