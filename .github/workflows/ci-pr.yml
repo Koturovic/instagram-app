@@ -20,10 +20,10 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
-
-      - name: Make root mvnw executable
-        run: chmod +x mvnw
-
+      # DAJE dozvolu za auth-service mvnw
+      - name: Make auth-service mvnw executable
+        run: chmod +x services/auth-service/mvnw
+        
       - name: Run auth-service tests
         working-directory: services/auth-service
         run: ./mvnw test -B
