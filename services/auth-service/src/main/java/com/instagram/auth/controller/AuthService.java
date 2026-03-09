@@ -15,9 +15,12 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
+import java.io.IOException;
+import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -93,7 +96,7 @@ public class AuthService {
 
     /**
      * Dohvata profil po userId (npr. user-service).
-     * GET /api/v1/auth/profiles/{userId} → { userId, username, isPrivate }.
+     * GET /api/v1/auth/profiles/{userId} → { userId, username, firstName, lastName, bio, profileImageUrl, isPrivate }.
      */
     public ProfileResponse getProfileByUserId(Integer userId) {
         User user = userRepository.findById(userId)
@@ -103,6 +106,10 @@ public class AuthService {
         return ProfileResponse.builder()
                 .userId(user.getId())
                 .username(profile.getUsername())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .bio(profile.getBio())
+                .profileImageUrl(profile.getProfileImageUrl())
                 .isPrivate(profile.getIsPrivate())
                 .build();
     }
@@ -125,5 +132,59 @@ public class AuthService {
                         .isPrivate(p.getIsPrivate())
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Ažurira profil korisnika (ime, prezime, username, bio, profilna slika, privatnost).
+     * PUT /api/v1/auth/profiles/{userId}
+     */
+    public ProfileResponse updateProfile(Integer userId, String firstName, String lastName, 
+                                         String username, String bio, Boolean isPrivate, 
+                                         MultipartFile profileImage) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ProfileNotFoundException("User not found"));
+        Profile profile = profileRepository.findByUser_Id(userId)
+                .orElseThrow(() -> new ProfileNotFoundException("Profile not found"));
+
+        // Provera da li username vec postoji kod drugog korisnika
+        if (!profile.getUsername().equals(username) &&
+                profileRepository.existsByUsername(username)) {
+            throw new UsernameAlreadyExistsException("Username već postoji");
+        }
+
+        // Update User entity
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        userRepository.save(user);
+
+        // Update Profile entity
+        profile.setUsername(username);
+        profile.setBio(bio);
+        
+        // Obrada profile slike ako je dostupna
+        if (profileImage != null && !profileImage.isEmpty()) {
+            try {
+                String base64Image = "data:" + profileImage.getContentType() + ";base64," + 
+                        Base64.getEncoder().encodeToString(profileImage.getBytes());
+                profile.setProfileImageUrl(base64Image);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to process profile image", e);
+            }
+        }
+        
+        if (isPrivate != null) {
+            profile.setIsPrivate(isPrivate);
+        }
+        profileRepository.save(profile);
+
+        return ProfileResponse.builder()
+                .userId(user.getId())
+                .username(profile.getUsername())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .bio(profile.getBio())
+                .profileImageUrl(profile.getProfileImageUrl())
+                .isPrivate(profile.getIsPrivate())
+                .build();
     }
 }
