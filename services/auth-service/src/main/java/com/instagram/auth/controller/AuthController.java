@@ -11,7 +11,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -54,6 +57,15 @@ public class AuthController {
     @GetMapping("/profiles/{userId}")
     public ResponseEntity<ProfileResponse> getProfileByUserId(@PathVariable Integer userId) {
         return ResponseEntity.ok(service.getProfileByUserId(userId));
+    }
+
+    /**
+     * Pretraga profila po username-u ili imenu/prezimenu (auth_db).
+     * Koristi ga user-service za Search stranicu.
+     */
+    @GetMapping("/profiles/search")
+    public ResponseEntity<List<ProfileSearchResponse>> searchProfiles(@RequestParam(defaultValue = "") String q) {
+        return ResponseEntity.ok(service.searchProfiles(q));
     }
 }
 
