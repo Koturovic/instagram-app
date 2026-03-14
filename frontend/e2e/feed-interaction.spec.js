@@ -33,21 +33,42 @@ const mockFeed = async (page) => {
 };
 
 const mockLike = async (page) => {
-  await page.route("http://localhost:8083/api/interactions/like", async (route) => {
+  await page.route("http://localhost:8083/api/likes/1?userId=1", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ message: "Liked successfully" }),
+      body: JSON.stringify("Post liked"),
+    });
+  });
+  await page.route("http://localhost:8083/api/likes/1/count", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(6), // increased from 5
+    });
+  });
+  await page.route("http://localhost:8083/api/likes/1/users/1", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(false), // not liked initially
     });
   });
 };
 
 const mockComment = async (page) => {
-  await page.route("http://localhost:8083/api/interactions/comment", async (route) => {
+  await page.route("http://localhost:8083/api/comments/1?userId=1", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({ id: 1, content: "Test comment", user: { username: "testuser" } }),
+    });
+  });
+  await page.route("http://localhost:8083/api/comments/1", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([]), // no existing comments
     });
   });
 };
