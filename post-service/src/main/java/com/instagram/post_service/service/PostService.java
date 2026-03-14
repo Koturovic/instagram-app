@@ -169,4 +169,38 @@ public class PostService {
         }
         return postRepository.save(post);
     }
+
+    @Transactional
+    public Post deleteMediaFromPost(Long postId, Long mediaId, Long userId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post nije pronađen!"));
+
+        if (!post.getUserId().equals(userId)) {
+            throw new RuntimeException("Nemate pravo da menjate ovu objavu!");
+        }
+
+        if (post.getMediaFiles().size() <= 1) {
+            throw new RuntimeException("Karosel mora imati barem jedan medij. Obrišite celu objavu ako želite.");
+        }
+
+        PostMedia mediaToDelete = post.getMediaFiles().stream()
+                .filter(m -> m.getId().equals(mediaId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Medij nije pronađen!"));
+
+        try {
+            String fileName = mediaToDelete.getFileUrl().substring(mediaToDelete.getFileUrl().lastIndexOf("/") + 1);
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder()
+                            .bucket(BUCKET_NAME)
+                            .object(fileName)
+                            .build()
+            );
+        } catch (Exception e) {
+            System.err.println("Greška pri brisanju sa MinIO: " + e.getMessage());
+        }
+
+        post.getMediaFiles().remove(mediaToDelete);
+        return postRepository.save(post);
+    }
 }

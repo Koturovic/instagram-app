@@ -13,10 +13,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/posts")
 @RequiredArgsConstructor
-
-@RestController
-@RequestMapping("/api/posts")
-@RequiredArgsConstructor
 @Tag(name = "Post Service", description = "Upravljanje objavama i medijima") // Dodaj ovo (uvezi import)
 
 public class PostController {
@@ -58,5 +54,14 @@ public class PostController {
             @RequestParam("description") String description,
             @RequestParam(value = "files", required = false) List<MultipartFile> files) throws Exception {
         return postService.updatePost(id, description, files);
+    }
+
+    // Brisanje pojedinačnog medija iz karosela
+    @DeleteMapping("/{postId}/media/{mediaId}")
+    public Post deleteMediaFromPost(
+            @PathVariable Long postId,
+            @PathVariable Long mediaId,
+            @RequestParam Long userId) {
+        return postService.deleteMediaFromPost(postId, mediaId, userId);
     }
 }
