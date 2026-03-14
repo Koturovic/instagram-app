@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { searchUsers, followUser } from "../services/userService";
+import { searchUsers, followUser, unblockUser, getRelationshipStatus } from "../services/userService";
 import "./Search.css";
 
 export default function Search() {
@@ -22,7 +22,51 @@ export default function Search() {
             setLoading(true);
             setSearched(true);
             const data = await searchUsers(query);
-            setResults(data);
+
+            const relationshipChecks = await Promise.all(
+                (data || []).map(async (user) => {
+                    try {
+                        const status = await getRelationshipStatus(user.id);
+                        return {
+                            userId: user.id,
+                            blocked: Boolean(status?.blocked),
+                            following: Boolean(status?.following),
+                            pending: Boolean(status?.pending),
+                        };
+                    } catch {
+                        return {
+                            userId: user.id,
+                            blocked: Boolean(user?.blockedByCurrentUser),
+                            following: false,
+                            pending: false,
+                        };
+                    }
+                })
+            );
+
+            const relationshipMap = Object.fromEntries(
+                relationshipChecks.map((item) => [item.userId, item])
+            );
+
+            const enrichedResults = (data || []).map((user) => ({
+                ...user,
+                blockedByCurrentUser: Boolean(relationshipMap[user.id]?.blocked ?? user?.blockedByCurrentUser),
+            }));
+
+            const initialFollowStates = {};
+            relationshipChecks.forEach((item) => {
+                if (item.blocked) {
+                    return;
+                }
+                if (item.following) {
+                    initialFollowStates[item.userId] = "following";
+                } else if (item.pending) {
+                    initialFollowStates[item.userId] = "requested";
+                }
+            });
+
+            setFollowStates(initialFollowStates);
+            setResults(enrichedResults);
         } catch (err) {
             console.error("Search error:", err);
             setResults([]);
@@ -44,6 +88,21 @@ export default function Search() {
         } catch (err) {
             console.error("Follow error:", err);
             alert("Failed to send follow request");
+        } finally {
+            setFollowLoading((prev) => ({ ...prev, [userId]: false }));
+        }
+    };
+
+    const handleUnblock = async (userId) => {
+        try {
+            setFollowLoading((prev) => ({ ...prev, [userId]: true }));
+            await unblockUser(userId);
+            setResults((prev) => prev.map((u) => (
+                u.id === userId ? { ...u, blockedByCurrentUser: false } : u
+            )));
+        } catch (err) {
+            console.error("Unblock error:", err);
+            alert("Failed to unblock user");
         } finally {
             setFollowLoading((prev) => ({ ...prev, [userId]: false }));
         }
@@ -88,7 +147,6 @@ export default function Search() {
                     {!loading && searched && results.length === 0 && (
                         <div className="no-results">
                             <p>🔍 No users found for "{query}"</p>
-                            <p>Search trenutno možda nije dostupan dok backend pretraga ne bude završena.</p>
                         </div>
                     )}
 
@@ -120,17 +178,27 @@ export default function Search() {
                                         >
                                             View Profile
                                         </button>
-                                        <button
-                                            className={getFollowButtonClassName(user.id)}
-                                            onClick={() => handleFollow(user.id)}
-                                            disabled={
-                                                followLoading[user.id] ||
-                                                followStates[user.id] === "requested" ||
-                                                followStates[user.id] === "following"
-                                            }
-                                        >
-                                            {getFollowButtonLabel(user.id)}
-                                        </button>
+                                        {user.blockedByCurrentUser ? (
+                                            <button
+                                                className="follow-btn unblock-btn"
+                                                onClick={() => handleUnblock(user.id)}
+                                                disabled={followLoading[user.id]}
+                                            >
+                                                {followLoading[user.id] ? "..." : "Unblock"}
+                                            </button>
+                                        ) : (
+                                            <button
+                                                className={getFollowButtonClassName(user.id)}
+                                                onClick={() => handleFollow(user.id)}
+                                                disabled={
+                                                    followLoading[user.id] ||
+                                                    followStates[user.id] === "requested" ||
+                                                    followStates[user.id] === "following"
+                                                }
+                                            >
+                                                {getFollowButtonLabel(user.id)}
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             ))}

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createPost } from "../services/postService";
+import { POST_CAPTION_MAX_LENGTH } from "../constants/postLimits";
 import "./CreatePostModal.css";
 
 export default function CreatePostModal({ isOpen, onClose }) {
@@ -148,7 +149,12 @@ export default function CreatePostModal({ isOpen, onClose }) {
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         rows={4}
+                        maxLength={POST_CAPTION_MAX_LENGTH}
                     />
+
+                    <p className="caption-counter">
+                        {description.length}/{POST_CAPTION_MAX_LENGTH}
+                    </p>
 
                     {/* error poruka */}
                     {error && <p className="error-message">{error}</p>}
@@ -156,7 +162,7 @@ export default function CreatePostModal({ isOpen, onClose }) {
                     {/* share button */}
                     <button 
                         type="submit" 
-                        className="submit-btn"
+                        className="create-post-submit-btn"
                         disabled={loading || selectedFiles.length === 0}
                     >
                         {loading ? "Sharing..." : "Share"}

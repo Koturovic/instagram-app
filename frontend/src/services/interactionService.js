@@ -26,3 +26,38 @@ export const getComments = async (postId) => {
     const response = await apiClient.get(getUrl("INTERACTION", `/comments/${postId}`));
     return response.data;
 };
+
+export const isPostLiked = async (postId, userId) => {
+    const response = await apiClient.get(
+        getUrl("INTERACTION", `/likes/${postId}/users/${userId}`)
+    );
+    return response.data;
+};
+
+export const getLikesCount = async (postId) => {
+    const response = await apiClient.get(
+        getUrl("INTERACTION", `/likes/${postId}/count`)
+    );
+    return Number(response.data ?? 0);
+};
+
+export const getCommentsCount = async (postId) => {
+    const response = await apiClient.get(getUrl("INTERACTION", `/comments/${postId}/count`));
+    return Number(response.data ?? 0);
+};
+
+export const updateComment = async (commentId, userId, newContent) => {
+    const response = await apiClient.put(
+        getUrl("INTERACTION", `/comments/${commentId}?userId=${userId}`),
+        newContent,
+        { headers: { "Content-Type": "text/plain" } }
+    );
+    return response.data;
+};
+
+export const deleteComment = async (commentId, userId) => {
+    const response = await apiClient.delete(
+        getUrl("INTERACTION", `/comments/${commentId}?userId=${userId}`)
+    );
+    return response.data;
+};

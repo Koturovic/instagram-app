@@ -1,0 +1,2 @@
+export const POST_CAPTION_MAX_LENGTH = 2200;
+export const POST_CAPTION_PREVIEW_LINES = 2;

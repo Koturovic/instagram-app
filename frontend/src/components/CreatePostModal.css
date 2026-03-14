@@ -17,6 +17,7 @@
     width: 90%;
     max-width: 600px;
     max-height: 90vh;
+    overflow-x: hidden;
     overflow-y: auto;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
@@ -146,6 +147,13 @@
     color: #8e8e8e;
 }
 
+.caption-counter {
+    margin: 6px 20px 12px;
+    text-align: right;
+    font-size: 12px;
+    color: #8e8e8e;
+}
+
 .error-message {
     color: #ed4956;
     font-size: 13px;
@@ -153,8 +161,10 @@
     margin: 0;
 }
 
-.submit-btn {
+.create-post-submit-btn {
+    display: block;
     width: calc(100% - 40px);
+    box-sizing: border-box;
     margin: 0 20px 20px;
     padding: 12px;
     background: #0095f6;
@@ -167,11 +177,11 @@
     transition: background 0.2s;
 }
 
-.submit-btn:hover:not(:disabled) {
+.create-post-submit-btn:hover:not(:disabled) {
     background: #1877f2;
 }
 
-.submit-btn:disabled {
+.create-post-submit-btn:disabled {
     background: #b2dffc;
     cursor: not-allowed;
 }

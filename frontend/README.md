@@ -48,6 +48,16 @@ npm test
 npm run test:coverage
 ```
 
+### Run UI Integration Tests (Playwright)
+```bash
+npm run test:e2e
+```
+
+For visual debugging in browser:
+```bash
+npm run test:e2e:headed
+```
+
 ### Test Coverage Report
 - **Overall Coverage: 98.03%**
 - **Branch Coverage: 94%**
@@ -67,6 +77,7 @@ npm run test:coverage
 - **@testing-library/react** - Component testing with user-centric queries
 - **@testing-library/jest-dom** - Custom matchers for DOM assertions
 - **@vitest/coverage-v8** - Code coverage reporting with V8 engine
+- **Playwright** - UI integration (E2E) testing in real browser
 
 ## Project Structure
 
