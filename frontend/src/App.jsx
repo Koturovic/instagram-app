@@ -14,20 +14,11 @@ export default function App() {
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {
-          /* Kasnije prepraviti ovako da izgleda, jer host ne dozvoljava prelazak na home 
-             sve dok token nije True, odnosno dok logovanje nije uspesno. */
-          /* <Route path="/home" element={<ProtectedRoute> <Home /> </ProtectedRoute>} */
-        }
-        <Route path="/home" element={<Home />} />
-        <Route path="/search" element={<Search />} />
+        <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
 
-        {
-          /* Kasnije prepraviti ovako da izgleda:
-          /* <Route path="/profile" element={<ProtectedRoute> <Profile /> </ProtectedRoute>} */
-        }
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/profile/:userId" element={<Profile />} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/profile/:userId" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
       </Routes>
     </BrowserRouter>

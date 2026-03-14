@@ -63,3 +63,12 @@ export const updatePostDescription = async (postId, description) => {
 
     return response.data;
 };
+
+// brisanje pojedinačnog medija iz karosel objave
+export const deleteMediaFromPost = async (postId, mediaId) => {
+    const userId = getUserIdFromToken();
+    const response = await apiClient.delete(
+        getUrl("POST", `/posts/${postId}/media/${mediaId}?userId=${userId}`)
+    );
+    return response.data;
+};

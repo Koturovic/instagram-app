@@ -3,8 +3,8 @@
   top: 0;
   width: 100%;
   height: 60px;
-  background: white;
-  border-bottom: 1px solid #ddd;
+  background: #f3e5c2;
+  border-bottom: 1px solid #c9b488;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -12,10 +12,46 @@
   z-index: 1000;
 }
 
+.navbar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 9px;
+  background: linear-gradient(
+    to bottom,
+    #2aa8ad 0 3px,
+    #f0c24b 3px 6px,
+    #9d2f2f 6px 9px
+  );
+  pointer-events: none;
+}
+
 .nav-logo {
   font-size: 24px;
   font-weight: bold;
   cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.nav-logo-refreshing {
+  animation: navLogoPulse 0.55s ease;
+}
+
+@keyframes navLogoPulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  35% {
+    opacity: 0.55;
+    transform: scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .nav-links {
@@ -37,7 +73,7 @@
 }
 
 .nav-links button:hover {
-  background: #f2f2f2;
+  background: rgba(77, 48, 27, 0.08);
 }
 
 .nav-links .create-btn {

@@ -50,9 +50,34 @@
     font-size: 16px;
 }
 
+.profile-stat-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-size: 16px;
+    color: #262626;
+    cursor: pointer;
+}
+
+.profile-stat-btn:hover {
+    text-decoration: underline;
+}
+
+.profile-stat-disabled {
+    font-size: 16px;
+    color: #8e8e8e;
+    cursor: default;
+}
+
 .profile-bio b {
     display: block;
     margin-bottom: 5px;
+}
+
+.profile-bio {
+    text-align: left;
+    max-width: 420px;
 }
 
 .profile-bio-text {
@@ -60,6 +85,7 @@
     white-space: pre-line;
     overflow-wrap: anywhere;
     line-height: 1.35;
+    text-align: left;
 }
 
 .profile-bio-text.collapsed {
@@ -69,6 +95,7 @@
 }
 
 .profile-bio-expand-btn {
+    display: block;
     background: none;
     border: none;
     color: #8e8e8e;
@@ -84,7 +111,7 @@
 }
 
 .profile-bio .private-badge {
-    display: inline-block;
+    display: block;
     margin-top: 8px;
     font-size: 12px;
     color: #ed4956;
@@ -223,7 +250,7 @@
 
 .grid-item {
     position: relative;
-    padding-bottom: 100%; 
+    padding-bottom: 100%;
     overflow: hidden;
     cursor: pointer;
     border-radius: 4px;
@@ -323,6 +350,28 @@
     border-bottom: 1px solid #dbdbdb;
 }
 
+.connections-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.connections-close-btn {
+    border: 1px solid #dbdbdb;
+    background: #fff;
+    color: #262626;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.connections-close-btn:hover {
+    background: #fafafa;
+}
+
 .follow-requests-list {
     display: flex;
     flex-direction: column;
@@ -354,10 +403,32 @@
     border: 1px solid #dbdbdb;
 }
 
+.follow-request-avatar-link {
+    display: inline-block;
+    border-radius: 50%;
+    line-height: 0;
+    transition: opacity 0.15s ease;
+}
+
+.follow-request-avatar-link:hover {
+    opacity: 0.85;
+}
+
 .follow-request-username {
     font-weight: 600;
     color: #262626;
     font-size: 14px;
+}
+
+.follow-request-username-link {
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.follow-request-username-link:hover {
+    color: #0095f6;
+    text-decoration: underline;
 }
 
 .follow-request-actions {

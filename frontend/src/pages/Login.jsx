@@ -48,38 +48,43 @@ export default function Login() {
       <div className="login-box">
       <img src={avatar} className="avatar" />
         <h2 className="logo">Instagram</h2>
-
-        <form onSubmit={handleLogin}>
-              <label>Email address</label>
+      
+          <form onSubmit={handleLogin}>
+            <div className={`login-form-field ${email ? "is-filled" : ""}`}>
               <input
+                id="email"
                 type="text"
                 placeholder="Enter email"
+                value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
+              <label htmlFor="email" className="floating-placeholder">Email address</label>
+            </div>
 
-            <div className="password-row">
-              <label>Password</label>
+            <div className={`login-form-field ${password ? "is-filled" : ""}`}>
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <label htmlFor="password" className="floating-placeholder">Password</label>
               <button
                 type="button"
-                className="show-btn"
+                className="show-btn in-field"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? "Hide" : "Show"}
               </button>
             </div>
-          
-          <input
-            type={showPassword ? "text" : "password"}
-            placeholder="Enter password"
-            onChange={(e) => setPassword(e.target.value)}
-          />
 
-          {error && <p className="error">{error}</p>}
+            {error && <p className="error">{error}</p>}
 
-          <button className="login-btn" type="submit">
-            Log in
-          </button>
-        </form>
+            <button className="login-btn" type="submit">
+              Log in
+            </button>
+          </form>
 
         <p className="signup-text">
           Don’t have an account? <span onClick={() => navigate("/register")}>Sign up</span>

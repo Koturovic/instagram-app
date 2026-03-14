@@ -166,6 +166,15 @@
     background: #1877f2;
 }
 
+.follow-btn.unblock-btn {
+    background: #efefef;
+    color: #262626;
+}
+
+.follow-btn.unblock-btn:hover {
+    background: #dbdbdb;
+}
+
 @media (max-width: 600px) {
     .user-result-item {
         flex-direction: column;

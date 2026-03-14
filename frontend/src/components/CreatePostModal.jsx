@@ -162,7 +162,7 @@ export default function CreatePostModal({ isOpen, onClose }) {
                     {/* share button */}
                     <button 
                         type="submit" 
-                        className="submit-btn"
+                        className="create-post-submit-btn"
                         disabled={loading || selectedFiles.length === 0}
                     >
                         {loading ? "Sharing..." : "Share"}

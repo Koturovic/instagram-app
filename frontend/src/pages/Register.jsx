@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { register } from "../services/authService";
 import { useNavigate } from "react-router-dom";
 import "./Register.css";
+import retroCameras from "./slika1.jfif";
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -100,61 +101,95 @@ function Register() {
 
   return (
     <div className="register-container">
-      <div className="register-box">
-        <h2>Create an Instagram account</h2>
+      <section className="register-left-panel" style={{ backgroundImage: `url(${retroCameras})` }}>
+        <div className="register-left-overlay" />
+        <div className="register-left-copy">
+          <p className="register-kicker">Retro Social Club</p>
+          <h1>Capture moments, share stories, stay iconic.</h1>
+          <p className="register-subcopy">
+            Grab your digital film roll, let's make memories together. Join us.
+          </p>
+        </div>
+      </section>
 
-        <form onSubmit={handleSubmit}>
-          <input
-            type="text"
-            name="firstName"
-            placeholder="First name"
-            value={formData.firstName}
-            onChange={handleChange}
-          />
-          {errors.firstName && <p className="error">{errors.firstName}</p>}
+      <section className="register-right-panel">
+        <div className="register-box">
+          <h2>Create an Instagram account</h2>
+          <p className="register-intro">Become a member of our vintage community.</p>
 
-          <input
-            type="text"
-            name="lastName"
-            placeholder="Last name"
-            value={formData.lastName}
-            onChange={handleChange}
-          />
-          {errors.lastName && <p className="error">{errors.lastName}</p>}
+          <form onSubmit={handleSubmit}>
+            <div className={`register-form-field ${formData.firstName ? "is-filled" : ""}`}>
+              <input
+                id="firstName"
+                type="text"
+                name="firstName"
+                placeholder="First name"
+                value={formData.firstName}
+                onChange={handleChange}
+              />
+              <label htmlFor="firstName" className="floating-placeholder">First name</label>
+            </div>
+            {errors.firstName && <p className="error">{errors.firstName}</p>}
 
-          <input
-            type="text"
-            name="username"
-            placeholder="Username"
-            value={formData.username}
-            onChange={handleChange}
-          />
-          {errors.username && <p className="error">{errors.username}</p>}
-          {!usernameAvailable && (
-            <p className="error">Username is already taken</p>
-          )}
+            <div className={`register-form-field ${formData.lastName ? "is-filled" : ""}`}>
+              <input
+                id="lastName"
+                type="text"
+                name="lastName"
+                placeholder="Last name"
+                value={formData.lastName}
+                onChange={handleChange}
+              />
+              <label htmlFor="lastName" className="floating-placeholder">Last name</label>
+            </div>
+            {errors.lastName && <p className="error">{errors.lastName}</p>}
 
-          <input
-            type="text"
-            name="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={handleChange}
-          />
-          {errors.email && <p className="error">{errors.email}</p>}
+            <div className={`register-form-field ${formData.username ? "is-filled" : ""}`}>
+              <input
+                id="username"
+                type="text"
+                name="username"
+                placeholder="Username"
+                value={formData.username}
+                onChange={handleChange}
+              />
+              <label htmlFor="username" className="floating-placeholder">Username</label>
+            </div>
+            {errors.username && <p className="error">{errors.username}</p>}
+            {!usernameAvailable && (
+              <p className="error">Username is already taken</p>
+            )}
 
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-          />
-          {errors.password && <p className="error">{errors.password}</p>}
+            <div className={`register-form-field ${formData.email ? "is-filled" : ""}`}>
+              <input
+                id="email"
+                type="text"
+                name="email"
+                placeholder="Email"
+                value={formData.email}
+                onChange={handleChange}
+              />
+              <label htmlFor="email" className="floating-placeholder">Email</label>
+            </div>
+            {errors.email && <p className="error">{errors.email}</p>}
 
-          <button type="submit">Sign up</button>
-        </form>
-      </div>
+            <div className={`register-form-field ${formData.password ? "is-filled" : ""}`}>
+              <input
+                id="password"
+                type="password"
+                name="password"
+                placeholder="Password"
+                value={formData.password}
+                onChange={handleChange}
+              />
+              <label htmlFor="password" className="floating-placeholder">Password</label>
+            </div>
+            {errors.password && <p className="error">{errors.password}</p>}
+
+            <button type="submit">Sign up</button>
+          </form>
+        </div>
+      </section>
     </div>
   );
 }

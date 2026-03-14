@@ -1,18 +1,34 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import CreatePostModal from "./CreatePostModal";
 import "./Navbar.css";
 
 export default function Navbar() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isLogoRefreshing, setIsLogoRefreshing] = useState(false);
+
+    const handleLogoClick = () => {
+        if (location.pathname === "/home") {
+            setIsLogoRefreshing(true);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            window.dispatchEvent(new Event("feed:refresh-request"));
+            setTimeout(() => {
+                setIsLogoRefreshing(false);
+            }, 550);
+            return;
+        }
+
+        navigate("/home");
+    };
 
     return (
         <>
             <div className="navbar">
                 <h2 
-                className="nav-logo" 
-                onClick={() => navigate("/home")}>
+                className={`nav-logo ${isLogoRefreshing ? "nav-logo-refreshing" : ""}`}
+                onClick={handleLogoClick}>
                     Instagram
                 </h2>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import EditProfileModal from "../components/EditProfileModal";
 import PostDetailModal from "../components/PostDetailModal";
@@ -8,7 +8,7 @@ import { getProfileByUserId } from "../services/authService";
 import { getUserIdFromToken } from "../utils/auth";
 import { normalizePosts } from "../utils/postMapper";
 import { POST_CAPTION_PREVIEW_LINES } from "../constants/postLimits";
-import { followUser, unfollowUser, getFollowersCount, getFollowingCount, blockUser, unblockUser, acceptFollowRequest, rejectFollowRequest } from "../services/userService";
+import { followUser, unfollowUser, removeFollower, getFollowersCount, getFollowingCount, getFollowersList, getFollowingList, getRelationshipStatus, blockUser, unblockUser, acceptFollowRequest, rejectFollowRequest, getPendingFollowRequests } from "../services/userService";
 import "./Profile.css";
 
 export default function Profile() {
@@ -19,10 +19,10 @@ export default function Profile() {
     const targetUserId = hasInvalidProfileParam ? currentUserId : (profileUserId || currentUserId); // ako nema korisnika u url-u, prikazujemo ulogovan profil
     const isOwnProfile = hasInvalidProfileParam || !profileUserId || profileUserId === String(currentUserId);
 
-    const [user, setUser] = useState({ 
-        username: "", 
-        firstName: "", 
-        lastName: "", 
+    const [user, setUser] = useState({
+        username: "",
+        firstName: "",
+        lastName: "",
         bio: "",
         profileImageUrl: "",
         isPrivate: false
@@ -45,12 +45,17 @@ export default function Profile() {
     const bioRef = useRef(null);
     const [pendingFollowRequests, setPendingFollowRequests] = useState([]);
     const [loadingFollowRequests, setLoadingFollowRequests] = useState(false);
+    const [activeConnectionsTab, setActiveConnectionsTab] = useState(null);
+    const [followersList, setFollowersList] = useState([]);
+    const [followingList, setFollowingList] = useState([]);
+    const [loadingConnections, setLoadingConnections] = useState(false);
+    const canViewConnections = isOwnProfile || !user.isPrivate || isFollowing;
 
     const fetchProfileData = useCallback(async () => {
         try {
             setLoading(true);
             setBackendUnavailable(false);
-            
+
             // fetchovanje user podataka (auth-service - 8080)
             const authProfile = await getProfileByUserId(targetUserId);
             setUser(prev => ({
@@ -94,9 +99,6 @@ export default function Profile() {
             }
 
             setUserPosts(posts);
-
-            // Učitavanje postova ne sme da čeka user-service brojače.
-            // Brojače osvežavamo odvojeno da profil ne ostane na "Loading posts...".
             Promise.all([
                 getFollowersCount(targetUserId),
                 getFollowingCount(targetUserId)
@@ -109,17 +111,33 @@ export default function Profile() {
                     console.error("User service not available yet:", err);
                 });
 
+            if (!isOwnProfile) {
+                getRelationshipStatus(targetUserId)
+                    .then((status) => {
+                        setIsFollowing(Boolean(status?.following));
+                        setIsPendingRequest(Boolean(status?.pending));
+                        setIsBlocked(Boolean(status?.blocked));
+                    })
+                    .catch((err) => {
+                        console.error("Error loading relationship status:", err);
+                    });
+            } else {
+                setIsFollowing(false);
+                setIsPendingRequest(false);
+                setIsBlocked(false);
+            }
+
         } catch (err) {
             console.error("Error fetching profile data:", err);
             setBackendUnavailable(true);
         } finally {
             setLoading(false);
         }
-    }, [targetUserId]);
+    }, [targetUserId, isOwnProfile]);
 
     useEffect(() => {
         document.title = "Profile | Instagram";
-        
+
         if (targetUserId) {
             fetchProfileData();
         }
@@ -129,7 +147,12 @@ export default function Profile() {
         setIsBioExpanded(false);
     }, [targetUserId, user.bio]);
 
-    // Učitaj pending follow requests samo za own profil
+    useEffect(() => {
+        if (!canViewConnections && activeConnectionsTab) {
+            setActiveConnectionsTab(null);
+        }
+    }, [canViewConnections, activeConnectionsTab]);
+
     useEffect(() => {
         if (!isOwnProfile) {
             setPendingFollowRequests([]);
@@ -139,8 +162,8 @@ export default function Profile() {
         const fetchPendingRequests = async () => {
             try {
                 setLoadingFollowRequests(true);
-                const response = await apiClient.get(getUrl("USER", "/follow-requests/pending"));
-                setPendingFollowRequests(response.data || []);
+                const data = await getPendingFollowRequests();
+                setPendingFollowRequests(data || []);
             } catch (err) {
                 console.error("Error fetching pending follow requests:", err);
                 setPendingFollowRequests([]);
@@ -181,7 +204,6 @@ export default function Profile() {
                 setIsFollowing(false);
                 setFollowersCount(prev => prev - 1);
             } else if (isPendingRequest) {
-                // TODO: implementirati cancel follow request (backend needs endpoint)
                 alert("Cannot cancel request yet - backend endpoint pending");
             } else {
                 await followUser(targetUserId);
@@ -200,7 +222,6 @@ export default function Profile() {
     };
 
     const handleProfileUpdate = (updatedUser) => {
-        // Ažurira sve poljea sa backend response-a
         setUser(prev => ({
             ...prev,
             userId: updatedUser.userId,
@@ -211,7 +232,6 @@ export default function Profile() {
             profileImageUrl: updatedUser.profileImageUrl || "",
             isPrivate: Boolean(updatedUser.isPrivate)
         }));
-        // Sada učitaj postove ponovo jer se korisnik mogao promeniti
         fetchProfileData();
     };
 
@@ -224,10 +244,10 @@ export default function Profile() {
             } else {
                 const confirmed = window.confirm("Are you sure you want to block this user? They won't be able to find your profile or see your posts.");
                 if (!confirmed) return;
-                
+
                 await blockUser(targetUserId);
                 setIsBlocked(true);
-                setIsFollowing(false); 
+                setIsFollowing(false);
                 alert("User blocked successfully");
             }
             setShowMenu(false);
@@ -257,12 +277,10 @@ export default function Profile() {
     };
 
     const handlePostDelete = (postId) => {
-        // Uklanja post iz grid-a nakon brisanja
         setUserPosts(prev => prev.filter(post => post.id !== postId));
     };
 
     const handlePostUpdate = (updatedPost) => {
-        // Ažurira post u listi nakon editovanja caption-a
         setUserPosts(prev => prev.map(p => p.id === updatedPost.id ? { ...p, caption: updatedPost.caption } : p));
         setSelectedPost(prev => prev?.id === updatedPost.id ? { ...prev, caption: updatedPost.caption } : prev);
     };
@@ -270,9 +288,7 @@ export default function Profile() {
     const handleAcceptFollowRequest = async (requestId, requesterUserId) => {
         try {
             await acceptFollowRequest(requestId);
-            // Ukloni prihvaćeni zahtev iz liste
             setPendingFollowRequests(prev => prev.filter(req => req.requestId !== requestId));
-            // Ažuriraj brojač followers-a
             setFollowersCount(prev => prev + 1);
             alert("Follow request accepted!");
         } catch (err) {
@@ -284,12 +300,67 @@ export default function Profile() {
     const handleRejectFollowRequest = async (requestId) => {
         try {
             await rejectFollowRequest(requestId);
-            // Ukloni odbijeni zahtev iz liste
             setPendingFollowRequests(prev => prev.filter(req => req.requestId !== requestId));
             alert("Follow request rejected!");
         } catch (err) {
             console.error("Error rejecting follow request:", err);
             alert("Failed to reject follow request");
+        }
+    };
+
+    const handleOpenFollowers = async () => {
+        if (!canViewConnections) {
+            return;
+        }
+        try {
+            setLoadingConnections(true);
+            setActiveConnectionsTab("followers");
+            const data = await getFollowersList(targetUserId);
+            setFollowersList(data);
+        } catch (err) {
+            console.error("Error loading followers:", err);
+            setFollowersList([]);
+        } finally {
+            setLoadingConnections(false);
+        }
+    };
+
+    const handleRemoveFollower = async (followerUserId) => {
+        try {
+            await removeFollower(followerUserId);
+            setFollowersList(prev => prev.filter(u => u.userId !== followerUserId));
+            setFollowersCount(prev => prev - 1);
+        } catch (err) {
+            console.error("Remove follower error:", err);
+            alert("Failed to remove follower.");
+        }
+    };
+
+    const handleUnfollowFromList = async (targetUserId) => {
+        try {
+            await unfollowUser(targetUserId);
+            setFollowingList(prev => prev.filter(u => u.userId !== targetUserId));
+            setFollowingCount(prev => prev - 1);
+        } catch (err) {
+            console.error("Unfollow error:", err);
+            alert("Failed to unfollow.");
+        }
+    };
+
+    const handleOpenFollowing = async () => {
+        if (!canViewConnections) {
+            return;
+        }
+        try {
+            setLoadingConnections(true);
+            setActiveConnectionsTab("following");
+            const data = await getFollowingList(targetUserId);
+            setFollowingList(data);
+        } catch (err) {
+            console.error("Error loading following:", err);
+            setFollowingList([]);
+        } finally {
+            setLoadingConnections(false);
         }
     };
 
@@ -305,18 +376,18 @@ export default function Profile() {
                 )}
                 <header className="profile-header">
                     <div className="profile-image">
-                        <img 
-                            src={user.profileImageUrl || "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg"} 
-                            alt={user.username} 
+                        <img
+                            src={user.profileImageUrl || "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg"}
+                            alt={user.username}
                         />
                     </div>
-                    
+
                     <section className="profile-info">
                         <div className="profile-top-row">
                             <h2 className="profile-username">{user.username || "username"}</h2>
-                            
+
                             {isOwnProfile ? (
-                                <button 
+                                <button
                                     className="edit-profile-btn"
                                     onClick={() => EDIT_PROFILE_ENABLED && setIsEditModalOpen(true)}
                                     disabled={!EDIT_PROFILE_ENABLED}
@@ -326,24 +397,24 @@ export default function Profile() {
                                 </button>
                             ) : (
                                 <>
-                                    <button 
+                                    <button
                                         className={isPendingRequest ? "requested-btn" : (isFollowing ? "unfollow-btn" : "follow-btn")}
                                         onClick={handleFollowToggle}
                                     >
                                         {isPendingRequest ? "Requested" : (isFollowing ? "Unfollow" : "Follow")}
                                     </button>
-                                    
+
                                     <div className="profile-menu-container">
-                                        <button 
+                                        <button
                                             className="profile-menu-btn"
                                             onClick={() => setShowMenu(!showMenu)}
                                         >
                                             ⋯
                                         </button>
-                                        
+
                                         {showMenu && (
                                             <div className="profile-dropdown-menu">
-                                                <button 
+                                                <button
                                                     className="menu-item"
                                                     onClick={handleBlockToggle}
                                                 >
@@ -358,8 +429,21 @@ export default function Profile() {
 
                         <div className="profile-stats">
                             <span><b>{userPosts.length}</b> posts</span>
-                            <span><b>{followersCount}</b> followers</span>
-                            <span><b>{followingCount}</b> following</span>
+                            {canViewConnections ? (
+                                <>
+                                    <button type="button" className="profile-stat-btn" onClick={handleOpenFollowers}>
+                                        <b>{followersCount}</b> followers
+                                    </button>
+                                    <button type="button" className="profile-stat-btn" onClick={handleOpenFollowing}>
+                                        <b>{followingCount}</b> following
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <span className="profile-stat-disabled"><b>{followersCount}</b> followers</span>
+                                    <span className="profile-stat-disabled"><b>{followingCount}</b> following</span>
+                                </>
+                            )}
                         </div>
 
                         <div className="profile-bio">
@@ -385,37 +469,139 @@ export default function Profile() {
                     </section>
                 </header>
 
-                {isOwnProfile && pendingFollowRequests.length > 0 && (
+                {isOwnProfile && (
                     <section className="follow-requests-section">
                         <h3 className="follow-requests-title">Follow Requests ({pendingFollowRequests.length})</h3>
-                        <div className="follow-requests-list">
-                            {pendingFollowRequests.map(request => (
-                                <div key={request.requestId} className="follow-request-item">
-                                    <div className="follow-request-user">
-                                        <img 
-                                            src={request.requesterProfileImage || "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg"}
-                                            alt={request.requesterUsername}
-                                            className="follow-request-avatar"
-                                        />
-                                        <span className="follow-request-username">{request.requesterUsername}</span>
+                        {loadingFollowRequests ? (
+                            <p className="loading-text">Loading follow requests...</p>
+                        ) : pendingFollowRequests.length === 0 ? (
+                            <p className="loading-text">No follow requests.</p>
+                        ) : (
+                            <div className="follow-requests-list">
+                                {pendingFollowRequests.map(request => (
+                                    <div key={request.requestId} className="follow-request-item">
+                                        <div className="follow-request-user">
+                                            {request.requesterUserId ? (
+                                                <Link to={`/profile/${request.requesterUserId}`} className="follow-request-avatar-link">
+                                                    <img
+                                                        src={request.requesterProfileImage || "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg"}
+                                                        alt={request.requesterUsername}
+                                                        className="follow-request-avatar"
+                                                    />
+                                                </Link>
+                                            ) : (
+                                                <img
+                                                    src={request.requesterProfileImage || "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg"}
+                                                    alt={request.requesterUsername}
+                                                    className="follow-request-avatar"
+                                                />
+                                            )}
+                                            {request.requesterUserId ? (
+                                                <Link
+                                                    to={`/profile/${request.requesterUserId}`}
+                                                    className="follow-request-username follow-request-username-link"
+                                                >
+                                                    {request.requesterUsername}
+                                                </Link>
+                                            ) : (
+                                                <span className="follow-request-username">{request.requesterUsername}</span>
+                                            )}
+                                        </div>
+                                        <div className="follow-request-actions">
+                                            <button
+                                                className="follow-request-accept-btn"
+                                                onClick={() => handleAcceptFollowRequest(request.requestId, request.requesterUserId)}
+                                            >
+                                                Accept
+                                            </button>
+                                            <button
+                                                className="follow-request-reject-btn"
+                                                onClick={() => handleRejectFollowRequest(request.requestId)}
+                                            >
+                                                Reject
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="follow-request-actions">
-                                        <button 
-                                            className="follow-request-accept-btn"
-                                            onClick={() => handleAcceptFollowRequest(request.requestId, request.requesterUserId)}
-                                        >
-                                            Accept
-                                        </button>
-                                        <button 
-                                            className="follow-request-reject-btn"
-                                            onClick={() => handleRejectFollowRequest(request.requestId)}
-                                        >
-                                            Reject
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                )}
+
+                {canViewConnections && activeConnectionsTab && (
+                    <section className="follow-requests-section">
+                        <div className="connections-header">
+                            <h3 className="follow-requests-title">
+                                {activeConnectionsTab === "followers" ? `Followers (${followersList.length})` : `Following (${followingList.length})`}
+                            </h3>
+                            <button
+                                type="button"
+                                className="connections-close-btn"
+                                onClick={() => setActiveConnectionsTab(null)}
+                            >
+                                Close
+                            </button>
                         </div>
+
+                        {loadingConnections ? (
+                            <p className="loading-text">Loading...</p>
+                        ) : (
+                            <div className="follow-requests-list">
+                                {(activeConnectionsTab === "followers" ? followersList : followingList).length === 0 ? (
+                                    <p className="loading-text">No users.</p>
+                                ) : (
+                                    (activeConnectionsTab === "followers" ? followersList : followingList).map((entry) => (
+                                        <div key={`${activeConnectionsTab}-${entry.userId}`} className="follow-request-item">
+                                            <div className="follow-request-user">
+                                                {entry.userId ? (
+                                                    <Link to={`/profile/${entry.userId}`} className="follow-request-avatar-link">
+                                                        <img
+                                                            src={entry.profileImageUrl || "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg"}
+                                                            alt={entry.username}
+                                                            className="follow-request-avatar"
+                                                        />
+                                                    </Link>
+                                                ) : (
+                                                    <img
+                                                        src={entry.profileImageUrl || "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg"}
+                                                        alt={entry.username}
+                                                        className="follow-request-avatar"
+                                                    />
+                                                )}
+                                                {entry.userId ? (
+                                                    <Link
+                                                        to={`/profile/${entry.userId}`}
+                                                        className="follow-request-username follow-request-username-link"
+                                                    >
+                                                        {entry.username}
+                                                    </Link>
+                                                ) : (
+                                                    <span className="follow-request-username">{entry.username}</span>
+                                                )}
+                                            </div>
+                                            <div className="follow-request-actions">
+                                                {isOwnProfile && activeConnectionsTab === "followers" && (
+                                                    <button
+                                                        className="follow-request-reject-btn"
+                                                        onClick={() => handleRemoveFollower(entry.userId)}
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                )}
+                                                {isOwnProfile && activeConnectionsTab === "following" && (
+                                                    <button
+                                                        className="follow-request-reject-btn"
+                                                        onClick={() => handleUnfollowFromList(entry.userId)}
+                                                    >
+                                                        Unfollow
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        )}
                     </section>
                 )}
 
@@ -438,8 +624,8 @@ export default function Profile() {
                         </div>
                     ) : userPosts.length > 0 ? (
                         userPosts.map((post, index) => (
-                            <div 
-                                key={post.id} 
+                            <div
+                                key={post.id}
                                 className="grid-item"
                                 onClick={() => handleOpenPostDetail(post, index)}
                             >

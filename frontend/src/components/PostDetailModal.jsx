@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { toggleLike, getComments, addComment, isPostLiked, getLikesCount } from "../services/interactionService";
-import { deletePost } from "../services/postService";
+import { Link } from "react-router-dom";
+import { toggleLike, getComments, addComment, isPostLiked, getLikesCount, getCommentsCount, updateComment, deleteComment } from "../services/interactionService";
+import { deletePost, deleteMediaFromPost } from "../services/postService";
 import { getUserIdFromToken } from "../utils/auth";
 import { getUsernameById } from "../services/authService";
 import EditCaptionModal from "./EditCaptionModal";
@@ -22,6 +23,15 @@ export default function PostDetailModal({ post, isOpen, onClose, onDelete, onUpd
     const [currentCaption, setCurrentCaption] = useState(post?.caption || "");
     const [isCaptionExpanded, setIsCaptionExpanded] = useState(false);
     const [isCaptionOverflowing, setIsCaptionOverflowing] = useState(false);
+    const [editingCommentId, setEditingCommentId] = useState(null);
+    const [editingContent, setEditingContent] = useState("");
+    const [commentsCount, setCommentsCount] = useState(0);
+    const [currentImageAspectRatio, setCurrentImageAspectRatio] = useState(1);
+    const [mediaFiles, setMediaFiles] = useState(
+        post?.mediaFiles && post.mediaFiles.length > 0
+            ? post.mediaFiles
+            : [{ fileUrl: post?.image || "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=800&auto=format&fit=crop" }]
+    );
     const captionRef = useRef(null);
 
     const currentUserId = getUserIdFromToken();
@@ -29,13 +39,13 @@ export default function PostDetailModal({ post, isOpen, onClose, onDelete, onUpd
     const displayUsername = resolvedUsername || post?.username || fallbackUsername;
     const avatarUrl = post?.avatar || "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg";
     
-    const mediaFiles = post?.mediaFiles && post.mediaFiles.length > 0
-        ? post.mediaFiles
-        : [{ fileUrl: post?.image || "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=800&auto=format&fit=crop" }];
-    
     const hasMultipleMedia = mediaFiles.length > 1;
+    const canGoPrevMedia = currentMediaIndex > 0;
+    const canGoNextMedia = currentMediaIndex < mediaFiles.length - 1;
     const hasPrevPost = allPosts && currentIndex > 0;
     const hasNextPost = allPosts && currentIndex < allPosts.length - 1;
+    const isCurrentMediaVideo = mediaFiles[currentMediaIndex]?.contentType?.startsWith("video/");
+    const isCurrentMediaImage = !isCurrentMediaVideo;
 
     const fetchComments = useCallback(async () => {
         if (!post?.id) return;
@@ -78,6 +88,15 @@ export default function PostDetailModal({ post, isOpen, onClose, onDelete, onUpd
                 })
                 .catch((err) => {
                     console.error("Error fetching likes count:", err);
+                });
+            getCommentsCount(post.id)
+                .then((count) => {
+                    if (!cancelled) {
+                        setCommentsCount(Number(count ?? 0));
+                    }
+                })
+                .catch((err) => {
+                    console.error("Error fetching comments count:", err);
                 });
         }
 
@@ -126,9 +145,16 @@ export default function PostDetailModal({ post, isOpen, onClose, onDelete, onUpd
     useEffect(() => {
         if (isOpen && post) {
             setLikes(post.likes ?? 0);
+            setCommentsCount(0);
             setCurrentCaption(post.caption || "");
             setCurrentMediaIndex(0);
+            setCurrentImageAspectRatio(1);
             setIsCaptionExpanded(false);
+            setMediaFiles(
+                post.mediaFiles && post.mediaFiles.length > 0
+                    ? post.mediaFiles
+                    : [{ fileUrl: post.image || "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=800&auto=format&fit=crop" }]
+            );
         }
         if (!isOpen) {
             setComments([]);
@@ -138,6 +164,14 @@ export default function PostDetailModal({ post, isOpen, onClose, onDelete, onUpd
             setCommentUsernames({});
             setResolvedUsername("");
             setShowSettings(false);
+            setEditingCommentId(null);
+            setEditingContent("");
+            setCurrentImageAspectRatio(1);
+            setMediaFiles(
+                post?.mediaFiles && post.mediaFiles.length > 0
+                    ? post.mediaFiles
+                    : [{ fileUrl: post?.image || "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=800&auto=format&fit=crop" }]
+            );
         }
     }, [isOpen, post]);
 
@@ -192,7 +226,6 @@ export default function PostDetailModal({ post, isOpen, onClose, onDelete, onUpd
 
         if (!post?.id) return;
 
-        // Optimistic update - odmah menja UI pre nego što dobije response
         const wasLiked = liked;
         setLiked(!wasLiked);
         setLikes(prev => Math.max(0, prev + (wasLiked ? -1 : 1)));
@@ -202,7 +235,6 @@ export default function PostDetailModal({ post, isOpen, onClose, onDelete, onUpd
             const freshCount = await getLikesCount(post.id);
             setLikes(Number(freshCount ?? 0));
         } catch (err) {
-            // Rollback ako nije uspelo
             console.error("Error toggling like:", err);
             setLiked(wasLiked);
             setLikes(prev => Math.max(0, prev + (wasLiked ? 1 : -1)));
@@ -228,6 +260,54 @@ export default function PostDetailModal({ post, isOpen, onClose, onDelete, onUpd
             setCommentUsernames(prev => ({ ...prev, [currentUserId]: username }));
         } catch (err) {
             console.error("Error adding comments:", err);
+        }
+    };
+
+    const handleEditComment = (comment) => {
+        setEditingCommentId(comment.id);
+        setEditingContent(comment.content);
+    };
+
+    const handleSaveEdit = async (commentId) => {
+        if (!editingContent.trim()) return;
+        try {
+            const updated = await updateComment(commentId, currentUserId, editingContent);
+            setComments(prev => prev.map(c => c.id === commentId ? updated : c));
+            setEditingCommentId(null);
+            setEditingContent("");
+        } catch (err) {
+            console.error("Error editing comment:", err);
+        }
+    };
+
+    const handleDeleteComment = async (commentId) => {
+        if (!window.confirm("Delete this comment?")) return;
+        try {
+            await deleteComment(commentId, currentUserId);
+            setComments(prev => prev.filter(c => c.id !== commentId));
+        } catch (err) {
+            console.error("Error deleting comment:", err);
+        }
+    };
+
+    const handleDeleteCurrentMedia = async () => {
+        const currentMedia = mediaFiles[currentMediaIndex];
+        if (!currentMedia || !currentMedia.id) return;
+        
+        const mediaType = currentMedia.contentType?.startsWith("video/") ? "klip" : "sliku";
+        if (!window.confirm(`Obrisati ovu ${mediaType} iz karosela?`)) return;
+        
+        try {
+            const updatedPost = await deleteMediaFromPost(post.id, currentMedia.id);
+            const newMediaFiles = updatedPost.mediaFiles && updatedPost.mediaFiles.length > 0
+                ? updatedPost.mediaFiles
+                : [];
+            setMediaFiles(newMediaFiles);
+            setCurrentMediaIndex(prev => Math.min(prev, newMediaFiles.length - 1));
+            setShowSettings(false);
+        } catch (err) {
+            console.error("Error deleting media:", err);
+            alert("Greška pri brisanju medija.");
         }
     };
 
@@ -287,11 +367,22 @@ export default function PostDetailModal({ post, isOpen, onClose, onDelete, onUpd
     };
 
     const handlePrevMedia = () => {
-        setCurrentMediaIndex(prev => (prev === 0 ? mediaFiles.length - 1 : prev - 1));
+        setCurrentMediaIndex(prev => (prev > 0 ? prev - 1 : prev));
     };
 
     const handleNextMedia = () => {
-        setCurrentMediaIndex(prev => (prev === mediaFiles.length - 1 ? 0 : prev + 1));
+        setCurrentMediaIndex(prev => (prev < mediaFiles.length - 1 ? prev + 1 : prev));
+    };
+
+    const handleImageLoad = (event) => {
+        const { naturalWidth, naturalHeight } = event.currentTarget;
+        if (!naturalWidth || !naturalHeight) {
+            setCurrentImageAspectRatio(1);
+            return;
+        }
+
+        const ratio = naturalWidth / naturalHeight;
+        setCurrentImageAspectRatio(Math.max(0.45, Math.min(2.2, ratio)));
     };
 
     const isOwner = currentUserId && post?.userId === currentUserId;
@@ -301,7 +392,7 @@ export default function PostDetailModal({ post, isOpen, onClose, onDelete, onUpd
     return (
         <div className="post-detail-modal-overlay" onClick={onClose}>
             <div
-                className="post-detail-modal"
+                className={`post-detail-modal ${isCurrentMediaImage ? "image-mode" : "video-mode"}`}
                 onClick={(e) => {
                     e.stopPropagation();
                     if (showSettings) {
@@ -323,30 +414,38 @@ export default function PostDetailModal({ post, isOpen, onClose, onDelete, onUpd
 
                 <div className="post-detail-content">
                     {/* LEFT SIDE - Media */}
-                    <div className="modal-media-side">
-                        {mediaFiles[currentMediaIndex]?.contentType?.startsWith("video/") ? (
+                    <div
+                        className="modal-media-side"
+                        style={isCurrentMediaImage ? { aspectRatio: String(currentImageAspectRatio) } : undefined}
+                    >
+                        {isCurrentMediaVideo ? (
                             <video
                                 src={mediaFiles[currentMediaIndex].fileUrl}
-                                className="modal-media"
+                                className="modal-media modal-media-video"
                                 controls
                             />
                         ) : (
                             <img 
                                 src={mediaFiles[currentMediaIndex].fileUrl} 
-                                className="modal-media" 
+                                className="modal-media modal-media-image" 
                                 alt="post content" 
+                                onLoad={handleImageLoad}
                             />
                         )}
                         
                         {hasMultipleMedia && (
                             <>
-                                <button className="carousel-btn carousel-btn-prev" onClick={handlePrevMedia}>
-                                    ‹
-                                </button>
-                                <button className="carousel-btn carousel-btn-next" onClick={handleNextMedia}>
-                                    ›
-                                </button>
-                                <div className="carousel-indicator">
+                                {canGoPrevMedia && (
+                                    <button className="modal-carousel-btn modal-carousel-btn-prev" onClick={handlePrevMedia}>
+                                        ‹
+                                    </button>
+                                )}
+                                {canGoNextMedia && (
+                                    <button className="modal-carousel-btn modal-carousel-btn-next" onClick={handleNextMedia}>
+                                        ›
+                                    </button>
+                                )}
+                                <div className="modal-carousel-indicator">
                                     {currentMediaIndex + 1} / {mediaFiles.length}
                                 </div>
                             </>
@@ -359,7 +458,13 @@ export default function PostDetailModal({ post, isOpen, onClose, onDelete, onUpd
                         <div className="modal-header">
                             <div className="modal-user-info">
                                 <img src={avatarUrl} className="modal-avatar" alt="avatar" />
-                                <span className="modal-username">{displayUsername}</span>
+                                {post?.userId ? (
+                                    <Link to={`/profile/${post.userId}`} className="modal-username-link">
+                                        <span className="modal-username">{displayUsername}</span>
+                                    </Link>
+                                ) : (
+                                    <span className="modal-username">{displayUsername}</span>
+                                )}
                             </div>
                             <div className="modal-header-actions">
                                 {isOwner && (
@@ -383,6 +488,14 @@ export default function PostDetailModal({ post, isOpen, onClose, onDelete, onUpd
                                             >
                                                 Edit Caption
                                             </button>
+                                            {hasMultipleMedia && (
+                                                <button 
+                                                    className="settings-item"
+                                                    onClick={handleDeleteCurrentMedia}
+                                                >
+                                                    Delete {mediaFiles[currentMediaIndex]?.contentType?.startsWith("video/") ? "Video" : "Image"}
+                                                </button>
+                                            )}
                                             <button 
                                                 className="settings-item delete-item"
                                                 onClick={handleDelete}
@@ -410,7 +523,13 @@ export default function PostDetailModal({ post, isOpen, onClose, onDelete, onUpd
                                 className={!isCaptionExpanded ? "collapsed" : ""}
                                 style={{ WebkitLineClamp: POST_CAPTION_PREVIEW_LINES }}
                             >
-                                <b>{displayUsername}</b> {currentCaption}
+                                {post?.userId ? (
+                                    <Link to={`/profile/${post.userId}`} className="modal-caption-username-link">
+                                        <b>{displayUsername}</b>
+                                    </Link>
+                                ) : (
+                                    <b>{displayUsername}</b>
+                                )} {currentCaption}
                             </p>
                             {!isCaptionExpanded && isCaptionOverflowing && (
                                 <button
@@ -432,10 +551,39 @@ export default function PostDetailModal({ post, isOpen, onClose, onDelete, onUpd
                                 <div className="comments-list">
                                     {comments.map((comment) => (
                                         <div key={comment.id} className="comment-item">
-                                            <span className="comment-username">
-                                                <b>{commentUsernames[comment.userId] || `user${comment.userId}`}</b>
-                                            </span>
-                                            <span className="comment-content">{comment.content}</span>
+                                            <div className="comment-main-row">
+                                                {comment.userId ? (
+                                                    <Link to={`/profile/${comment.userId}`} className="modal-comment-username-link">
+                                                        <span className="comment-username">
+                                                            <b>{commentUsernames[comment.userId] || `user${comment.userId}`}</b>
+                                                        </span>
+                                                    </Link>
+                                                ) : (
+                                                    <span className="comment-username">
+                                                        <b>{commentUsernames[comment.userId] || `user${comment.userId}`}</b>
+                                                    </span>
+                                                )}
+                                                {editingCommentId === comment.id ? (
+                                                    <div className="comment-edit-row">
+                                                        <input
+                                                            className="comment-edit-input"
+                                                            value={editingContent}
+                                                            onChange={(e) => setEditingContent(e.target.value)}
+                                                            autoFocus
+                                                        />
+                                                        <button className="comment-save-btn" onClick={() => handleSaveEdit(comment.id)}>Save</button>
+                                                        <button className="comment-cancel-btn" onClick={() => setEditingCommentId(null)}>Cancel</button>
+                                                    </div>
+                                                ) : (
+                                                    <span className="comment-content">{comment.content}</span>
+                                                )}
+                                                {Number(comment.userId) === Number(currentUserId) && editingCommentId !== comment.id && (
+                                                    <div className="comment-actions">
+                                                        <button className="comment-edit-btn" onClick={() => handleEditComment(comment)} title="Edit">✏️</button>
+                                                        <button className="comment-delete-btn" onClick={() => handleDeleteComment(comment.id)} title="Delete">🗑️</button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -444,16 +592,21 @@ export default function PostDetailModal({ post, isOpen, onClose, onDelete, onUpd
                             )}
                         </div>
 
-                        {/* Likes */}
-                        <div className="modal-likes">
-                            <p><b>{likes} likes</b></p>
-                        </div>
 
                         {/* Actions */}
                         <div className="modal-actions">
-                            <button onClick={handleLike} className="like-btn">
-                                {liked ? "❤️ Liked" : "🤍 Like"}
-                            </button>
+                            <div className="modal-action-item">
+                                <button onClick={handleLike} className="modal-like-btn" aria-label="Like post">
+                                    {liked ? "❤️" : "🤍"}
+                                </button>
+                                <span className="modal-action-count">{likes}</span>
+                            </div>
+                            <div className="modal-action-item">
+                                <span className="modal-comment-btn" aria-label="Comments">
+                                    💬
+                                </span>
+                                <span className="modal-action-count">{commentsCount}</span>
+                            </div>
                         </div>
 
                         {/* Add comment form */}

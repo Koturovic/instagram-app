@@ -21,6 +21,13 @@ export const unfollowUser = async (targetUserId) => {
     return response.data;
 };
 
+export const removeFollower = async (followerUserId) => {
+    const response = await apiClient.delete(
+        getUrl("USER", `/users/followers/${followerUserId}`)
+    );
+    return response.data;
+};
+
 export const getFollowersCount = async (userId) => {
     const response = await apiClient.get(
         getUrl("USER", `/users/${userId}/followers/count`)
@@ -32,6 +39,13 @@ export const getFollowersCount = async (userId) => {
     return 0;
 };
 
+export const getRelationshipStatus = async (targetUserId) => {
+    const response = await apiClient.get(
+        getUrl("USER", `/users/relationship/${targetUserId}`)
+    );
+    return response.data;
+};
+
 export const getFollowingCount = async (userId) => {
     const response = await apiClient.get(
         getUrl("USER", `/users/${userId}/following/count`)
@@ -41,6 +55,20 @@ export const getFollowingCount = async (userId) => {
     if (typeof payload?.count === "number") return payload.count;
     if (typeof payload?.count === "string") return Number(payload.count) || 0;
     return 0;
+};
+
+export const getFollowersList = async (userId) => {
+    const response = await apiClient.get(
+        getUrl("USER", `/users/${userId}/followers`)
+    );
+    return response.data || [];
+};
+
+export const getFollowingList = async (userId) => {
+    const response = await apiClient.get(
+        getUrl("USER", `/users/${userId}/following`)
+    );
+    return response.data || [];
 };
 
 export const acceptFollowRequest = async (requestId) => {
@@ -59,7 +87,7 @@ export const rejectFollowRequest = async (requestId) => {
 
 export const getPendingFollowRequests = async () => {
     const response = await apiClient.get(
-        getUrl("USER", `/follow-requests/pending`)
+        getUrl("USER", `/users/follow-requests/pending`)
     );
     return response.data;
 };

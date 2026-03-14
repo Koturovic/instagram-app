@@ -26,8 +26,28 @@
     border-radius: 50%;
 }
 
+.post-avatar-link {
+    display: inline-block;
+    flex-shrink: 0;
+    border-radius: 50%;
+    transition: opacity 0.15s ease;
+}
+
+.post-avatar-link:hover {
+    opacity: 0.85;
+}
+
 .post-username {
     font-weight: 600;
+}
+
+.post-username-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.post-username-link:hover .post-username {
+    text-decoration: underline;
 }
 
 .delete-post-btn {
@@ -120,12 +140,12 @@
     display: block;
 }
 
-.carousel-btn {
+.postcard-carousel-btn {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(0, 0, 0, 0.5);
-    color: white;
+    background: rgba(255, 255, 255, 0.92);
+    color: #262626;
     border: none;
     border-radius: 50%;
     width: 40px;
@@ -137,21 +157,22 @@
     justify-content: center;
     transition: background 0.2s;
     z-index: 10;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
 }
 
-.carousel-btn:hover {
-    background: rgba(0, 0, 0, 0.7);
+.postcard-carousel-btn:hover {
+    background: rgba(255, 255, 255, 1);
 }
 
-.carousel-btn-prev {
+.postcard-carousel-btn-prev {
     left: 10px;
 }
 
-.carousel-btn-next {
+.postcard-carousel-btn-next {
     right: 10px;
 }
 
-.carousel-indicator {
+.postcard-carousel-indicator {
     position: absolute;
     top: 10px;
     right: 10px;
@@ -165,29 +186,43 @@
 
 .post-actions {
     padding: 10px;
-    font-size: 20px;
     display: flex;
-    gap: 10px;
+    gap: 18px;
     justify-content: flex-start;
     align-items: center;
 }
 
-.post-actions button {
+.post-action-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.post-action-count {
+    font-size: 15px;
+    font-weight: 600;
+    color: #262626;
+    min-width: 1ch;
+}
+
+.post-actions .postcard-like-btn,
+.post-actions .postcard-comment-btn {
     background: none;
     border: none;
     cursor: pointer;
     font-size: 24px;
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
     transition: transform 0.2s;
 }
 
-.post-actions button:hover {
+.post-actions .postcard-like-btn:hover,
+.post-actions .postcard-comment-btn:hover {
     transform: scale(1.1);
-}
-
-.post-likes {
-    font-weight: bold;
-    padding: 0 10px;
-    margin: 5px 0;
 }
 
 .post-caption {
@@ -268,16 +303,98 @@
 .comment-item {
     padding: 5px 0;
     font-size: 14px;
+}
+
+.comment-main-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+    column-gap: 8px;
+    row-gap: 4px;
+}
+
+.comment-actions {
+    display: none;
+    gap: 4px;
+    align-self: start;
+}
+
+.comment-item:hover .comment-actions {
     display: flex;
-    gap: 8px;
+}
+
+.comment-edit-btn,
+.comment-delete-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    font-size: 13px;
+    line-height: 1;
+    opacity: 0.6;
+}
+
+.comment-edit-btn:hover,
+.comment-delete-btn:hover {
+    opacity: 1;
+}
+
+.comment-edit-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+}
+
+.comment-edit-input {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 13px;
+    outline: none;
+}
+
+.comment-edit-input:focus {
+    border-color: #999;
+}
+
+.comment-save-btn {
+    background: #0095f6;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 10px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.comment-cancel-btn {
+    background: #eee;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 10px;
+    font-size: 12px;
+    cursor: pointer;
 }
 
 .comment-username {
     font-weight: 600;
 }
 
+.comment-username-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.comment-username-link:hover .comment-username {
+    text-decoration: underline;
+}
+
 .comment-content {
     color: #262626;
+    min-width: 0;
+    word-break: break-word;
 }
 
 .add-comment-form {

@@ -61,6 +61,18 @@ export default function Home() {
         fetchPosts();
     }, [fetchPosts]);
 
+    useEffect(() => {
+        const handleFeedRefreshRequest = () => {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            fetchPosts();
+        };
+
+        window.addEventListener("feed:refresh-request", handleFeedRefreshRequest);
+        return () => {
+            window.removeEventListener("feed:refresh-request", handleFeedRefreshRequest);
+        };
+    }, [fetchPosts]);
+
     const handlePostDelete = (postId) => {
         // nakon brisanja post-a, osvezavamo feed tako sto uklanjamo obrisani post iz stanja
         setPosts(prevPosts => prevPosts.filter(p => p.id !== postId));

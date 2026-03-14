@@ -17,16 +17,19 @@ body {
   top: 20px;
   right: 20px;
   padding: 10px 16px;
-  background: #f5f5e6;
-  border: 1px solid #ddd;
+  background: linear-gradient(135deg, #2f6da3 0%, #4d95d6 100%);
+  border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: background 0.2s ease, box-shadow 0.2s ease;
+  color: #ffffff;
+  font-weight: 600;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
 .top-register-btn:hover {
-  background: #f7f7f7;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+  box-shadow: 0 4px 12px rgba(47, 109, 163, 0.35);
 }
 
 .login-box {
@@ -63,7 +66,7 @@ body {
 input {
   width: 100%;
   box-sizing: border-box;
-  padding: 10px;
+  padding: 20px 12px 8px 12px;
   margin-bottom: 10px;
   border-radius: 6px;
   border: 1px solid #ccc;
@@ -82,6 +85,40 @@ label {
   display: block;
   text-align: left;
   margin-bottom: 5px;
+}
+
+.login-form-field {
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.login-form-field input {
+  margin-bottom: 0;
+}
+
+.floating-placeholder {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  color: #7a7a7a;
+  pointer-events: none;
+  transition: top 0.18s ease, transform 0.18s ease, font-size 0.18s ease, color 0.18s ease, background-color 0.18s ease, padding 0.18s ease;
+}
+
+.login-form-field input:focus + .floating-placeholder,
+.login-form-field.is-filled input + .floating-placeholder {
+  top: -7px;
+  transform: none;
+  font-size: 11px;
+  color: #a26a25;
+  background-color: #f5f5e6;
+  padding: 0 4px;
+}
+
+.login-form-field input::placeholder {
+  color: transparent;
 }
 
 .password-row {
@@ -103,6 +140,19 @@ h2, p {
   color: #555;
   cursor: pointer;
   font-size: 12px;
+}
+
+.show-btn.in-field {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 4px 6px;
+  z-index: 2;
+}
+
+.login-form-field:has(.show-btn.in-field) input {
+  padding-right: 58px;
 }
 
 .login-btn {

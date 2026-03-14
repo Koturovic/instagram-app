@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { toggleLike, getComments, addComment, isPostLiked, getLikesCount } from "../services/interactionService";
-import { deletePost } from "../services/postService";
+import { Link } from "react-router-dom";
+import { toggleLike, getComments, addComment, isPostLiked, getLikesCount, getCommentsCount, updateComment, deleteComment } from "../services/interactionService";
+import { deletePost, deleteMediaFromPost } from "../services/postService";
 import { getUserIdFromToken } from "../utils/auth";
 import { getUsernameById } from "../services/authService";
 import { POST_CAPTION_PREVIEW_LINES } from "../constants/postLimits";
@@ -23,23 +24,26 @@ export default function PostCard({ post, onDelete }) {
     const [showSettings, setShowSettings] = useState(false);
     const [isEditCaptionOpen, setIsEditCaptionOpen] = useState(false);
     const [currentCaption, setCurrentCaption] = useState(post.caption || "");
+    const [commentsCount, setCommentsCount] = useState(0);
+    const [editingCommentId, setEditingCommentId] = useState(null);
+    const [editingContent, setEditingContent] = useState("");
     const captionRef = useRef(null);
     const settingsMenuRef = useRef(null);
 
     const currentUserId = getUserIdFromToken();
     const fallbackUsername = post.userId ? `user${post.userId}` : "Unknown user";
     const displayUsername = resolvedUsername || post.username || fallbackUsername;
-    const fallbackUsername = post.userId ? `user${post.userId}` : "Unknown user";
-    const displayUsername = resolvedUsername || post.username || fallbackUsername;
     const avatarUrl = post.avatar || "https://thumbs.dreamstime.com/b/default-avatar-profile-trendy-style-social-media-user-icon-187599373.jpg";
-    
-    const mediaFiles = post.mediaFiles && post.mediaFiles.length > 0
-        ? post.mediaFiles
-    const mediaFiles = post.mediaFiles && post.mediaFiles.length > 0
-        ? post.mediaFiles
-        : [{ fileUrl: post.image || "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=800&auto=format&fit=crop" }];
-    
+
+    const [mediaFiles, setMediaFiles] = useState(
+        post.mediaFiles && post.mediaFiles.length > 0
+            ? post.mediaFiles
+            : [{ fileUrl: post.image || "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=800&auto=format&fit=crop" }]
+    );
+
     const hasMultipleMedia = mediaFiles.length > 1;
+    const canGoPrevMedia = currentMediaIndex > 0;
+    const canGoNextMedia = currentMediaIndex < mediaFiles.length - 1;
     const captionText = currentCaption || "";
 
     const fetchComments = useCallback(async () => {
@@ -48,13 +52,13 @@ export default function PostCard({ post, onDelete }) {
             const data = await getComments(post.id);
             setComments(data);
             setCommentsLoaded(true);
-            
-            const userIds = [...new Set(data.map(c => c.userId))]; 
+
+            const userIds = [...new Set(data.map(c => c.userId))];
             const usernamePromises = userIds.map(async (userId) => {
                 const username = await getUsernameById(userId);
                 return [userId, username];
             });
-            
+
             const usernameEntries = await Promise.all(usernamePromises);
             const usernameMap = Object.fromEntries(usernameEntries);
             setCommentUsernames(usernameMap);
@@ -101,6 +105,15 @@ export default function PostCard({ post, onDelete }) {
                 .catch((err) => {
                     console.error("Error fetching likes count:", err);
                 });
+            getCommentsCount(post.id)
+                .then((count) => {
+                    if (!cancelled) {
+                        setCommentsCount(Number(count ?? 0));
+                    }
+                })
+                .catch((err) => {
+                    console.error("Error fetching comments count:", err);
+                });
         }
 
         return () => {
@@ -131,6 +144,12 @@ export default function PostCard({ post, onDelete }) {
         setCurrentCaption(post.caption || "");
         setShowSettings(false);
         setIsEditCaptionOpen(false);
+        setMediaFiles(
+            post.mediaFiles && post.mediaFiles.length > 0
+                ? post.mediaFiles
+                : [{ fileUrl: post.image || "https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?w=800&auto=format&fit=crop" }]
+        );
+        setCurrentMediaIndex(0);
     }, [post.id, post.caption]);
 
     useEffect(() => {
@@ -203,7 +222,7 @@ export default function PostCard({ post, onDelete }) {
 
     const handleAddComment = async (e) => {
         e.preventDefault();
-        
+
         if (!currentUserId) {
             alert("Please login to comment");
             return;
@@ -215,11 +234,40 @@ export default function PostCard({ post, onDelete }) {
             const comment = await addComment(post.id, currentUserId, newComment);
             setComments([...comments, comment]);
             setNewComment("");
-            
+            setCommentsCount(prev => prev + 1);
+
             const username = await getUsernameById(currentUserId);
             setCommentUsernames(prev => ({ ...prev, [currentUserId]: username }));
         } catch (err) {
             console.error("Error adding comments:", err);
+        }
+    };
+
+    const handleEditComment = (comment) => {
+        setEditingCommentId(comment.id);
+        setEditingContent(comment.content);
+    };
+
+    const handleSaveEdit = async (commentId) => {
+        if (!editingContent.trim()) return;
+        try {
+            const updated = await updateComment(commentId, currentUserId, editingContent);
+            setComments(prev => prev.map(c => c.id === commentId ? updated : c));
+            setEditingCommentId(null);
+            setEditingContent("");
+        } catch (err) {
+            console.error("Error editing comment:", err);
+        }
+    };
+
+    const handleDeleteComment = async (commentId) => {
+        if (!window.confirm("Delete this comment?")) return;
+        try {
+            await deleteComment(commentId, currentUserId);
+            setComments(prev => prev.filter(c => c.id !== commentId));
+            setCommentsCount(prev => Math.max(0, prev - 1));
+        } catch (err) {
+            console.error("Error deleting comment:", err);
         }
     };
 
@@ -228,11 +276,11 @@ export default function PostCard({ post, onDelete }) {
     };
 
     const handlePrevMedia = () => {
-        setCurrentMediaIndex(prev => (prev === 0 ? mediaFiles.length - 1 : prev - 1));
+        setCurrentMediaIndex(prev => (prev > 0 ? prev - 1 : prev));
     };
 
     const handleNextMedia = () => {
-        setCurrentMediaIndex(prev => (prev === mediaFiles.length - 1 ? 0 : prev + 1));
+        setCurrentMediaIndex(prev => (prev < mediaFiles.length - 1 ? prev + 1 : prev));
     };
 
     const handleDelete = async () => {
@@ -254,11 +302,30 @@ export default function PostCard({ post, onDelete }) {
             alert("Post deleted successfully!");
             if (onDelete) {
                 onDelete(post.id); // roditelj je obavesten da je post obrisan
-                                   // i moze da osvezi listu post-ova
+                // i moze da osvezi listu post-ova
             }
         } catch (err) {
             console.error("Error deleting post:", err);
             alert("Failed to delete post. Please try again.");
+        }
+    };
+
+    const handleDeleteCurrentMedia = async () => {
+        const currentMedia = mediaFiles[currentMediaIndex];
+        if (!currentMedia || !currentMedia.id) return;
+        const mediaType = currentMedia.contentType?.startsWith("video/") ? "klip" : "sliku";
+        if (!window.confirm(`Obrisati ovu ${mediaType} iz karosela?`)) return;
+        try {
+            const updatedPost = await deleteMediaFromPost(post.id, currentMedia.id);
+            const newMediaFiles = updatedPost.mediaFiles && updatedPost.mediaFiles.length > 0
+                ? updatedPost.mediaFiles
+                : [];
+            setMediaFiles(newMediaFiles);
+            setCurrentMediaIndex(prev => Math.min(prev, newMediaFiles.length - 1));
+            setShowSettings(false);
+        } catch (err) {
+            console.error("Error deleting media:", err);
+            alert("Greška pri brisanju medija.");
         }
     };
 
@@ -276,171 +343,214 @@ export default function PostCard({ post, onDelete }) {
 
     return (
         <>
-        <div className="post-card">
-            <div className="post-header">
-                <div className="post-header-left">
-                    <img src={avatarUrl} className="post-avatar" alt="avatar" />
-                    <span className="post-username">{displayUsername}</span>
-                </div>
-                {isOwner && (
-                    <div className="feed-settings-menu" ref={settingsMenuRef}>
-                        <button
-                            className="feed-settings-btn"
-                            onClick={() => setShowSettings((prev) => !prev)}
-                            title="Post settings"
-                        >
-                            ⋯
-                        </button>
-                        {showSettings && (
-                            <div className="feed-settings-dropdown">
-                                <button
-                                    className="feed-settings-item"
-                                    onClick={handleEditCaption}
-                                >
-                                    Edit Caption
-                                </button>
-                                <button
-                                    className="feed-settings-item delete-item"
-                                    onClick={handleDelete}
-                                >
-                                    Delete Post
-                                </button>
-                            </div>
+            <div className="post-card">
+                <div className="post-header">
+                    <div className="post-header-left">
+                        {post.userId ? (
+                            <Link to={`/profile/${post.userId}`} className="post-avatar-link">
+                                <img src={avatarUrl} className="post-avatar" alt="avatar" />
+                            </Link>
+                        ) : (
+                            <img src={avatarUrl} className="post-avatar" alt="avatar" />
                         )}
+                        {post.userId ? (
+                            <Link to={`/profile/${post.userId}`} className="post-username-link">
+                                <span className="post-username">{displayUsername}</span>
+                            </Link>
+                        ) : (
+                            <span className="post-username">{displayUsername}</span>
+                        )}
+                    </div>
+                    {isOwner && (
+                        <div className="feed-settings-menu" ref={settingsMenuRef}>
+                            <button
+                                className="feed-settings-btn"
+                                onClick={() => setShowSettings((prev) => !prev)}
+                                title="Post settings"
+                            >
+                                ⋯
+                            </button>
+                            {showSettings && (
+                                <div className="feed-settings-dropdown">
+                                    <button
+                                        className="feed-settings-item"
+                                        onClick={handleEditCaption}
+                                    >
+                                        Edit Caption
+                                    </button>
+                                    {hasMultipleMedia && (
+                                        <button
+                                            className="feed-settings-item delete-item"
+                                            onClick={handleDeleteCurrentMedia}
+                                        >
+                                            Delete {mediaFiles[currentMediaIndex]?.contentType?.startsWith("video/") ? "Video" : "Image"}
+                                        </button>
+                                    )}
+                                    <button
+                                        className="feed-settings-item delete-item"
+                                        onClick={handleDelete}
+                                    >
+                                        Delete Post
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Media karousel */}
+                <div className="post-media-container">
+                    {mediaFiles[currentMediaIndex].contentType?.startsWith("video/") ? (
+                        <video
+                            src={mediaFiles[currentMediaIndex].fileUrl}
+                            className="post-image"
+                            controls
+                        />
+                    ) : (
+                        <img
+                            src={mediaFiles[currentMediaIndex].fileUrl}
+                            className="post-image"
+                            alt="post content"
+                        />
+                    )}
+
+                    {hasMultipleMedia && (
+                        <>
+                            {canGoPrevMedia && (
+                                <button className="postcard-carousel-btn postcard-carousel-btn-prev" onClick={handlePrevMedia}>
+                                    ‹
+                                </button>
+                            )}
+                            {canGoNextMedia && (
+                                <button className="postcard-carousel-btn postcard-carousel-btn-next" onClick={handleNextMedia}>
+                                    ›
+                                </button>
+                            )}
+                            <div className="postcard-carousel-indicator">
+                                {currentMediaIndex + 1} / {mediaFiles.length}
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                <div className="post-actions">
+                    <div className="post-action-item">
+                        <button onClick={handleLike} className="postcard-like-btn" aria-label="Like post">
+                            {liked ? "❤️" : "🤍"}
+                        </button>
+                        <span className="post-action-count">{likes}</span>
+                    </div>
+                    <div className="post-action-item">
+                        <button onClick={toggleCommentsView} className="postcard-comment-btn" aria-label="Show comments">
+                            💬
+                        </button>
+                        <span className="post-action-count">{commentsCount}</span>
+                    </div>
+                </div>
+
+                <div className="post-caption-block">
+                    <p
+                        ref={captionRef}
+                        className={`post-caption ${!isCaptionExpanded ? "collapsed" : ""}`}
+                        style={{ WebkitLineClamp: POST_CAPTION_PREVIEW_LINES }}
+                    >
+                        <b>{displayUsername}</b> {captionText}
+                    </p>
+                    {!isCaptionExpanded && isCaptionOverflowing && (
+                        <button
+                            type="button"
+                            className="caption-expand-btn"
+                            onClick={() => setIsCaptionExpanded(true)}
+                            title="Show full caption"
+                        >
+                            See more
+                        </button>
+                    )}
+                </div>
+
+                {/* link za gledanje svih komentara */}
+                {!showComments && (
+                    <button className="view-comments-btn" onClick={toggleCommentsView}>
+                        View comments
+                    </button>
+                )}
+
+                {/* sekcija za komentare */}
+                {showComments && (
+                    <div className="comments-section">
+                        {loadingComments ? (
+                            <p className="loading-text">Loading comments...</p>
+                        ) : comments.length > 0 ? (
+                            <div className="comments-list">
+                                {comments.map((comment) => (
+                                    <div key={comment.id} className="comment-item">
+                                        <div className="comment-main-row">
+                                            {comment.userId ? (
+                                                <Link to={`/profile/${comment.userId}`} className="comment-username-link">
+                                                    <span className="comment-username">
+                                                        <b>{commentUsernames[comment.userId] || `user${comment.userId}`}</b>
+                                                    </span>
+                                                </Link>
+                                            ) : (
+                                                <span className="comment-username">
+                                                    <b>{commentUsernames[comment.userId] || `user${comment.userId}`}</b>
+                                                </span>
+                                            )}
+                                            {editingCommentId === comment.id ? (
+                                                <div className="comment-edit-row">
+                                                    <input
+                                                        className="comment-edit-input"
+                                                        value={editingContent}
+                                                        onChange={(e) => setEditingContent(e.target.value)}
+                                                        autoFocus
+                                                    />
+                                                    <button className="comment-save-btn" onClick={() => handleSaveEdit(comment.id)}>Save</button>
+                                                    <button className="comment-cancel-btn" onClick={() => setEditingCommentId(null)}>Cancel</button>
+                                                </div>
+                                            ) : (
+                                                <span className="comment-content">{comment.content}</span>
+                                            )}
+                                            {Number(comment.userId) === Number(currentUserId) && editingCommentId !== comment.id && (
+                                                <div className="comment-actions">
+                                                    <button className="comment-edit-btn" onClick={() => handleEditComment(comment)} title="Edit">✏️</button>
+                                                    <button className="comment-delete-btn" onClick={() => handleDeleteComment(comment.id)} title="Delete">🗑️</button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="no-comments">No comments yet</p>
+                        )}
+
+                        {/* forma za komentarisanje */}
+                        <form onSubmit={handleAddComment} className="add-comment-form">
+                            <input
+                                type="text"
+                                placeholder="Add a comment..."
+                                value={newComment}
+                                onChange={(e) => setNewComment(e.target.value)}
+                                className="comment-input"
+                            />
+                            <button
+                                type="submit"
+                                disabled={!newComment.trim()}
+                                className="post-comment-btn"
+                            >
+                                Post
+                            </button>
+                        </form>
                     </div>
                 )}
             </div>
 
-            {/* Media karousel */}
-            <div className="post-media-container">
-                {mediaFiles[currentMediaIndex].contentType?.startsWith("video/") ? (
-                    <video
-                        src={mediaFiles[currentMediaIndex].fileUrl}
-                        className="post-image"
-                        controls
-                    />
-                ) : (
-                    <img 
-                        src={mediaFiles[currentMediaIndex].fileUrl} 
-                        className="post-image" 
-                        alt="post content" 
-                    />
-                )}
-                {mediaFiles[currentMediaIndex].contentType?.startsWith("video/") ? (
-                    <video
-                        src={mediaFiles[currentMediaIndex].fileUrl}
-                        className="post-image"
-                        controls
-                    />
-                ) : (
-                    <img 
-                        src={mediaFiles[currentMediaIndex].fileUrl} 
-                        className="post-image" 
-                        alt="post content" 
-                    />
-                )}
-                
-                {hasMultipleMedia && (
-                    <>
-                        <button className="carousel-btn carousel-btn-prev" onClick={handlePrevMedia}>
-                            ‹
-                        </button>
-                        <button className="carousel-btn carousel-btn-next" onClick={handleNextMedia}>
-                            ›
-                        </button>
-                        <div className="carousel-indicator">
-                            {currentMediaIndex + 1} / {mediaFiles.length}
-                        </div>
-                    </>
-                )}
-            </div>
-
-            <div className="post-actions">
-                <button onClick={handleLike} className="like-btn">
-                    {liked ? "❤️" : "🤍"}
-                </button>
-                <button onClick={toggleCommentsView} className="comment-btn">
-                    💬
-                </button>
-            </div>
-
-            <p className="post-likes">{likes} likes</p>
-
-            <div className="post-caption-block">
-                <p
-                    ref={captionRef}
-                    className={`post-caption ${!isCaptionExpanded ? "collapsed" : ""}`}
-                    style={{ WebkitLineClamp: POST_CAPTION_PREVIEW_LINES }}
-                >
-                    <b>{displayUsername}</b> {captionText}
-                </p>
-                {!isCaptionExpanded && isCaptionOverflowing && (
-                    <button
-                        type="button"
-                        className="caption-expand-btn"
-                        onClick={() => setIsCaptionExpanded(true)}
-                        title="Show full caption"
-                    >
-                        See more
-                    </button>
-                )}
-            </div>
-
-            {/* link za gledanje svih komentara */}
-            {!showComments && (
-                <button className="view-comments-btn" onClick={toggleCommentsView}>
-                    View comments
-                    View comments
-                </button>
-            )}
-
-            {/* sekcija za komentare */}
-            {showComments && (
-                <div className="comments-section">
-                    {loadingComments ? (
-                        <p className="loading-text">Loading comments...</p>
-                    ) : comments.length > 0 ? (
-                        <div className="comments-list">
-                            {comments.map((comment) => (
-                                <div key={comment.id} className="comment-item">
-                                    <span className="comment-username">
-                                        <b>{commentUsernames[comment.userId] || `user${comment.userId}`}</b>
-                                    </span>
-                                    <span className="comment-content">{comment.content}</span>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="no-comments">No comments yet</p>
-                    )}
-
-                    {/* forma za komentarisanje */}
-                    <form onSubmit={handleAddComment} className="add-comment-form">
-                        <input
-                            type="text"
-                            placeholder="Add a comment..."
-                            value={newComment}
-                            onChange={(e) => setNewComment(e.target.value)}
-                            className="comment-input"
-                        />
-                        <button 
-                            type="submit" 
-                            disabled={!newComment.trim()}
-                            className="post-comment-btn"
-                        >
-                            Post
-                        </button>
-                    </form>
-                </div>
-            )}
-        </div>
-
-        <EditCaptionModal
-            post={{ ...post, caption: currentCaption }}
-            isOpen={isEditCaptionOpen}
-            onClose={() => setIsEditCaptionOpen(false)}
-            onUpdate={handleCaptionUpdate}
-        />
+            <EditCaptionModal
+                post={{ ...post, caption: currentCaption }}
+                isOpen={isEditCaptionOpen}
+                onClose={() => setIsEditCaptionOpen(false)}
+                onUpdate={handleCaptionUpdate}
+            />
         </>
     );
 }
