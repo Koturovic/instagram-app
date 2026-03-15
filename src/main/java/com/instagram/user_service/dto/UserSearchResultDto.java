@@ -16,4 +16,5 @@ public class UserSearchResultDto {
     private String lastName;
     private String profileImageUrl;
     private Boolean isPrivate;
+    private Boolean blockedByCurrentUser;
 }
