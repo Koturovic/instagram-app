@@ -23,8 +23,10 @@ public class LikeController {
     // Endpoint za broj lajkova
     // Poziva se sa: GET http://localhost:8083/api/likes/{postId}/count
     @GetMapping("/{postId}/count")
-    public Long getLikesCount(@PathVariable Long postId) {
-        return likeService.getLikesCount(postId);
+    public Long getLikesCount(
+            @PathVariable Long postId,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
+        return likeService.getLikesCount(postId, authHeader);
     }
 
     // Provera da li je korisnik vec lajkovao post
