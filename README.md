@@ -123,18 +123,18 @@ Svi servisi komuniciraju preko **synchronous REST API** poziva:
 
 1. **JWT Token Flow**:
    - Korisnik se prijavljuje na `auth-service` → dobija JWT token
-   - Svi zahtevi drugim servisima sadrže JWT token u header-u (`Authorization: Bearer <token>`)
-   - Svaki servis validira JWT preko `auth-service/api/auth/validate`
+   - `auth-service` i `user-service` koriste JWT validaciju u trenutnoj implementaciji
+   - `post-service`, `interaction-service` i `feed-service` trenutno ne sprovode punu JWT validaciju na nivou svakog endpoint-a; deo endpoint-a prima `userId` kao parametar
 
 2. **Inter-Service Communication**:
    - Servisi pozivaju jedan drugog za validaciju i dohvatanje podataka
-   - Primer: `post-service` proverava da li korisnik može videti objavu preko `user-service`
+   - Primeri iz trenutne implementacije: `user-service` poziva `auth-service` za profile/search podatke, a `feed-service` agregira podatke iz `post-service` i `interaction-service`
 
 ### Tehnološki Stack
 
 **Backend**:
 - Java 17
-- Spring Boot 4.0.3
+- Spring Boot 4.0.1 (`auth-service`), 4.0.3 (`user-service`), 4.0.2 (`post-service`, `interaction-service`), 3.5.11 (`feed-service`)
 - Spring Security (JWT autentifikacija)
 - Spring Data JPA
 - PostgreSQL 16
@@ -165,17 +165,17 @@ Svi servisi komuniciraju preko **synchronous REST API** poziva:
 ### 1. Registracija i Prijava Korisnika
 
 ```
-1. Korisnik šalje POST /api/auth/register sa email, username, password, name
-2. auth-service validira podatke (email format, username format, password strength)
+1. Korisnik šalje POST /api/v1/auth/register sa firstName, lastName, username, email, password
+2. auth-service validira podatke (obavezna polja, email format)
 3. auth-service proverava da li email/username već postoje
 4. auth-service hash-uje lozinku sa BCrypt
 5. auth-service kreira User i Profile entitete u auth_db
-6. auth-service vraća 201 Created sa userId
+6. auth-service vraća 200 OK sa JWT tokenom
 
-7. Korisnik šalje POST /api/auth/login sa username i password
-8. auth-service pronalazi korisnika u bazi
+7. Korisnik šalje POST /api/v1/auth/login sa email i password
+8. auth-service pronalazi korisnika po email-u
 9. auth-service proverava lozinku (BCrypt)
-10. auth-service generiše JWT token (sa userId, username, email)
+10. auth-service generiše JWT token sa `userId` claim-om
 11. auth-service vraća 200 OK sa JWT tokenom
 ```
 
@@ -183,23 +183,23 @@ Svi servisi komuniciraju preko **synchronous REST API** poziva:
 
 #### Javni Profil:
 ```
-1. Korisnik A šalje POST /api/follow/request/{targetUserId} + JWT
+1. Korisnik A šalje POST /api/v1/users/follow-request/{targetUserId} + JWT
 2. user-service validira JWT preko auth-service
 3. user-service proverava da li target profil postoji i da li je javni
 4. user-service automatski kreira follow relaciju u follows tabeli
-5. user-service vraća 201 Created
+5. user-service vraća 201 Created sa `{ requestId: null, followed: true }`
 ```
 
 #### Privatni Profil:
 ```
-1. Korisnik A šalje POST /api/follow/request/{targetUserId} + JWT
+1. Korisnik A šalje POST /api/v1/users/follow-request/{targetUserId} + JWT
 2. user-service validira JWT preko auth-service
 3. user-service proverava da li target profil postoji i da li je privatni
 4. user-service kreira follow_requests sa statusom PENDING
 5. user-service vraća 201 Created sa requestId
 
 6. Korisnik B (target) dobija obaveštenje o zahtevu
-7. Korisnik B šalje POST /api/follow/accept/{requestId} + JWT
+7. Korisnik B šalje POST /api/v1/users/follow-request/{requestId}/accept + JWT
 8. user-service ažurira follow_requests status na ACCEPTED
 9. user-service kreira follow relaciju u follows tabeli
 10. user-service vraća 200 OK
@@ -208,9 +208,9 @@ Svi servisi komuniciraju preko **synchronous REST API** poziva:
 ### 3. Kreiranje Objave
 
 ```
-1. Korisnik šalje POST /api/posts (multipart/form-data) sa description i files[] + JWT
-2. post-service validira JWT preko auth-service
-3. post-service proverava da li korisnik može kreirati objave (preko user-service)
+1. Korisnik šalje POST /api/posts (multipart/form-data) sa description, userId i files[]
+2. post-service trenutno ne validira JWT u samom endpoint-u
+3. post-service validira fajlove i priprema upload u MinIO
 4. post-service validira fajlove:
    - Maksimalno 20 fajlova
    - Maksimalno 50MB po fajlu
@@ -218,59 +218,50 @@ Svi servisi komuniciraju preko **synchronous REST API** poziva:
 5. post-service upload-uje fajlove u File Storage
 6. post-service kreira Post entitet u post_db
 7. post-service kreira PostMedia entitete za svaki fajl
-8. post-service vraća 201 Created sa postId i detaljima
+8. post-service vraća kreirani `Post` objekat
 ```
 
 ### 4. Lajkovanje Objave
 
 ```
-1. Korisnik šalje POST /api/likes/{postId} + JWT
-2. interaction-service validira JWT preko auth-service
-3. interaction-service proverava da li objava postoji (preko post-service)
-4. interaction-service proverava da li korisnik može videti objavu (preko user-service)
-5. interaction-service proverava da li korisnik nije blokiran (preko user-service)
-6. interaction-service kreira Like entitet u interaction_db
-7. interaction-service vraća 200 OK sa likeId
+1. Korisnik šalje POST /api/likes/{postId}?userId={userId}
+2. interaction-service pokušava proveru da li objava postoji preko post-service
+3. Ako provera ne uspe, obrada se i dalje nastavlja (soft-fail)
+4. Ako like već postoji, briše ga; ako ne postoji, kreira novi like
+5. interaction-service vraća tekstualnu poruku (`Post liked` / `Post unliked`)
 ```
 
 ### 5. Komentarisanje Objave
 
 ```
-1. Korisnik šalje POST /api/comments/{postId} sa content + JWT
-2. interaction-service validira JWT preko auth-service
-3. interaction-service proverava da li objava postoji (preko post-service)
-4. interaction-service proverava da li korisnik može videti objavu (preko user-service)
-5. interaction-service proverava da li korisnik nije blokiran (preko user-service)
-6. interaction-service kreira Comment entitet u interaction_db
-7. interaction-service vraća 201 Created sa commentId
+1. Korisnik šalje POST /api/comments/{postId}?userId={userId} sa body-jem koji sadrži tekst komentara
+2. interaction-service pokušava proveru da li objava postoji preko post-service
+3. Ako provera ne uspe, obrada se i dalje nastavlja (soft-fail)
+4. interaction-service kreira Comment entitet u interaction_db
+5. interaction-service vraća kreirani `Comment`
 ```
 
 ### 6. Generisanje Feeda
 
 ```
-1. Korisnik šalje GET /api/feed + JWT
-2. feed-service validira JWT preko auth-service
-3. feed-service dohvata listu profila koje korisnik prati (preko user-service)
-4. Za svaki profil koji se prati:
-   a. feed-service dohvata objave (preko post-service)
-   b. Za svaku objavu:
-      - feed-service dohvata broj lajkova (preko interaction-service)
-      - feed-service dohvata poslednjih N komentara (preko interaction-service)
-5. feed-service filtrira objave blokiranih korisnika
-6. feed-service sortira objave po created_at DESC
-7. feed-service primenjuje paginaciju
-8. feed-service vraća 200 OK sa feed array-om
+1. Korisnik šalje GET /api/feed/{userId}
+2. feed-service trenutno ne dohvata realnu following listu iz user-service
+3. Umesto toga, feed se formira samo od postova prosleđenog `userId`
+4. Za svaki post feed-service dohvata broj lajkova i komentare iz interaction-service
+5. Greške u agregaciji se loguju preko `System.out.println`, a obrada se nastavlja
+6. feed-service vraća listu `FeedResponseDTO` objekata
 ```
 
 ### 7. Pretraga Korisnika
 
 ```
-1. Korisnik šalje GET /api/users/search?q={query} + JWT
+1. Korisnik šalje GET /api/v1/users/search?q={query} + JWT
 2. user-service validira JWT preko auth-service
 3. user-service pretražuje korisnike po username i name u auth_db (preko auth-service)
-4. user-service filtrira blokirane korisnike
-5. user-service primenjuje paginaciju
-6. user-service vraća 200 OK sa listom korisnika
+4. user-service uklanja trenutnog korisnika iz rezultata
+5. user-service skriva korisnike koji su blokirali trenutnog korisnika
+6. korisnike koje je trenutni korisnik blokirao i dalje vraća, ali uz flag `blockedByCurrentUser`
+7. user-service trenutno ne primenjuje paginaciju
 ```
 
 ---
