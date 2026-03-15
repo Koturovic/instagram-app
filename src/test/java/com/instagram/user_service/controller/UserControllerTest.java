@@ -2,6 +2,7 @@ package com.instagram.user_service.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.instagram.user_service.dto.FollowRequestResponse;
+import com.instagram.user_service.dto.UserSearchResultDto;
 import com.instagram.user_service.exception.GlobalExceptionHandler;
 import com.instagram.user_service.security.CurrentUser;
 import com.instagram.user_service.service.FollowService;
@@ -123,12 +124,27 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/users/search returns empty list")
+    @DisplayName("GET /api/v1/users/search returns search results")
     void search() throws Exception {
+        when(followService.searchUsers("ana", 1L)).thenReturn(List.of(
+                UserSearchResultDto.builder()
+                        .id(2L)
+                        .username("ana")
+                        .firstName("Ana")
+                        .lastName("Anić")
+                        .isPrivate(false)
+                        .build()
+        ));
+
+        setCurrentUser(1L);
         mockMvc.perform(get("/api/v1/users/search").param("q", "ana"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(2))
+                .andExpect(jsonPath("$[0].username").value("ana"));
+
+        verify(followService).searchUsers("ana", 1L);
     }
 
     private void setCurrentUser(long userId) {

@@ -23,7 +23,7 @@ public interface BlockRepository extends JpaRepository<Block, Long> {
     List<Long> findBlockedUserIdsByBlockerUserId(@Param("blockerId") Long blockerUserId);
 
     @Query("SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END FROM Block b " +
-           "WHERE (b.blockerUserId = :id1 AND b.blockedUserId = :id2) OR (b.blockerUserId = :id2 AND b.blockedUserId = :id1)")
+            "WHERE (b.blockerUserId = :id1 AND b.blockedUserId = :id2) OR (b.blockerUserId = :id2 AND b.blockedUserId = :id1)")
     boolean existsBlockBetween(@Param("id1") Long userId1, @Param("id2") Long userId2);
 
     @Modifying

@@ -9,6 +9,8 @@ import java.util.Optional;
 
 public interface FollowRequestRepository extends JpaRepository<FollowRequest, Long> {
 
+    Optional<FollowRequest> findByRequesterUserIdAndTargetUserId(Long requesterUserId, Long targetUserId);
+
     Optional<FollowRequest> findByRequesterUserIdAndTargetUserIdAndStatus(
             Long requesterUserId, Long targetUserId, FollowRequestStatus status);
 

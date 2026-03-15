@@ -123,8 +123,7 @@ class FollowServiceTest {
             when(authServiceClient.getProfileByUserId(USER_2)).thenReturn(profile(USER_2, true));
             when(blockRepository.existsBlockBetween(USER_1, USER_2)).thenReturn(false);
             when(followRepository.existsByFollowerUserIdAndFollowingUserId(USER_1, USER_2)).thenReturn(false);
-            when(followRequestRepository.existsByRequesterUserIdAndTargetUserIdAndStatus(USER_1, USER_2, FollowRequestStatus.PENDING))
-                    .thenReturn(false);
+            when(followRequestRepository.findByRequesterUserIdAndTargetUserId(USER_1, USER_2)).thenReturn(Optional.empty());
             FollowRequest saved = FollowRequest.builder().id(100L).requesterUserId(USER_1).targetUserId(USER_2).status(FollowRequestStatus.PENDING).build();
             when(followRequestRepository.save(any(FollowRequest.class))).thenReturn(saved);
 
@@ -141,8 +140,10 @@ class FollowServiceTest {
             when(authServiceClient.getProfileByUserId(USER_2)).thenReturn(profile(USER_2, true));
             when(blockRepository.existsBlockBetween(USER_1, USER_2)).thenReturn(false);
             when(followRepository.existsByFollowerUserIdAndFollowingUserId(USER_1, USER_2)).thenReturn(false);
-            when(followRequestRepository.existsByRequesterUserIdAndTargetUserIdAndStatus(USER_1, USER_2, FollowRequestStatus.PENDING))
-                    .thenReturn(true);
+            FollowRequest existingPending = FollowRequest.builder()
+                    .id(99L).requesterUserId(USER_1).targetUserId(USER_2).status(FollowRequestStatus.PENDING).build();
+            when(followRequestRepository.findByRequesterUserIdAndTargetUserId(USER_1, USER_2))
+                    .thenReturn(Optional.of(existingPending));
 
             assertThatThrownBy(() -> followService.sendFollowRequest(USER_1, USER_2))
                     .isInstanceOf(BadRequestException.class)
