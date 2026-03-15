@@ -1,0 +1,126 @@
+.edit-profile-modal {
+    max-width: 500px;
+    overflow-x: hidden;
+}
+
+.edit-form {
+    padding: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.profile-image-preview {
+    width: 100%;
+    max-width: 100%;
+    height: 220px;
+    border: 1px solid #dbdbdb;
+    border-radius: 10px;
+    background: #fafafa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.profile-image-preview img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #262626;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid #dbdbdb;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    border-color: #0095f6;
+    box-shadow: 0 0 0 2px rgba(0, 149, 246, 0.1);
+}
+
+.form-group textarea {
+    resize: vertical;
+}
+
+.checkbox-group {
+    border: 1px solid #dbdbdb;
+    border-radius: 6px;
+    padding: 16px;
+    background: #fafafa;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    margin-bottom: 8px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: auto;
+    cursor: pointer;
+}
+
+.checkbox-group span {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.hint-text {
+    margin: 0;
+    font-size: 12px;
+    color: #8e8e8e;
+    margin-left: 30px;
+}
+
+.error-message {
+    color: #ed4956;
+    font-size: 13px;
+    margin: 10px 0;
+    text-align: center;
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 12px;
+    background: #0095f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.submit-btn:hover:not(:disabled) {
+    background: #1877f2;
+}
+
+.submit-btn:disabled {
+    background: #b2dffc;
+    cursor: not-allowed;
+}
