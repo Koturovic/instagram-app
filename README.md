@@ -119,22 +119,22 @@ instagram-app/
 
 ### Komunikacija između Servisa
 
-Svi servisi komuniciraju preko **synchronous REST API** poziva:
+Svi servisi komuniciraju preko **REST API** poziva:
 
 1. **JWT Token Flow**:
    - Korisnik se prijavljuje na `auth-service` → dobija JWT token
-   - `auth-service` i `user-service` koriste JWT validaciju u trenutnoj implementaciji
-   - `post-service`, `interaction-service` i `feed-service` trenutno ne sprovode punu JWT validaciju na nivou svakog endpoint-a; deo endpoint-a prima `userId` kao parametar
+   - Svi zahtevi drugim servisima sadrže JWT token u header-u (`Authorization: Bearer <token>`)
+   - Svaki servis validira JWT preko `auth-service/api/auth/validate`
 
 2. **Inter-Service Communication**:
    - Servisi pozivaju jedan drugog za validaciju i dohvatanje podataka
-   - Primeri iz trenutne implementacije: `user-service` poziva `auth-service` za profile/search podatke, a `feed-service` agregira podatke iz `post-service` i `interaction-service`
+   - `user-service` poziva `auth-service` za profile/search podatke, a `feed-service` agregira podatke iz `post-service` i `interaction-service`
 
 ### Tehnološki Stack
 
 **Backend**:
 - Java 17
-- Spring Boot 4.0.1 (`auth-service`), 4.0.3 (`user-service`), 4.0.2 (`post-service`, `interaction-service`), 3.5.11 (`feed-service`)
+- Spring Boot 
 - Spring Security (JWT autentifikacija)
 - Spring Data JPA
 - PostgreSQL 16
@@ -337,4 +337,3 @@ Ovaj projekat je deo projektnog zadatka iz predmeta **"Projektovanje informacion
 
 ---
 
-**Napomena**: Ova dokumentacija je ažurirana u skladu sa zahtevima projektnog zadatka. Za najnovije informacije, pogledaj commit istoriju.
