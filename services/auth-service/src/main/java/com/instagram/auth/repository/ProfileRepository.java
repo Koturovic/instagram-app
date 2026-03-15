@@ -23,6 +23,7 @@ public interface ProfileRepository extends JpaRepository<Profile, Integer> {
 	 * Pretraga profila po username-u ili po imenu/prezimenu korisnika (auth_db).
 	 */
 	@Query("SELECT p FROM Profile p JOIN FETCH p.user u WHERE LOWER(p.username) LIKE LOWER(CONCAT('%', :q, '%')) " +
-			"OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', :q, '%')) OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :q, '%'))")
+			"OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', :q, '%')) OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :q, '%')) " +
+			"OR LOWER(CONCAT(u.firstName, ' ', u.lastName)) LIKE LOWER(CONCAT('%', :q, '%'))")
 	List<Profile> searchByUsernameOrName(@Param("q") String q);
 }

@@ -1,16 +1,31 @@
 # Instagram Replika - Projektni Zadatak
 
-Replika društvene mreže Instagram implementirana kao mikroservisna arhitektura sa 5 nezavisnih servisa.
+Replika društvene mreže Instagram implementirana kao mikroservisna arhitektura sa 5 nezavisnih backend servisa i React frontend aplikacijom.
 
 
 
 ## 🏗️ Arhitektura Aplikacije
 
-Aplikacija je implementirana kao **mikroservisna arhitektura** sa 5 nezavisnih servisa. Svaki servis ima svoju bazu podataka (Database per Service pattern) i može se nezavisno deploy-ovati i skalirati.
+Aplikacija je implementirana kao **mikroservisna arhitektura** sa 5 nezavisnih backend servisa. Svaki servis ima svoju bazu podataka (Database per Service pattern) i može se nezavisno deploy-ovati i skalirati.
+
+### Struktura Repozitorijuma
+
+```
+instagram-app/
+├── services/auth-service/   ← auth-service (Spring Boot)
+├── src/                     ← user-service (Spring Boot, root projekat)
+├── post-service/            ← post-service (Spring Boot)
+├── interaction-service/     ← interaction-service (Spring Boot)
+├── feed-service/            ← feed-service (Spring Boot)
+├── frontend/                ← React frontend aplikacija
+├── docker-compose.yml
+└── pom.xml
+```
 
 ### Mikroservisi
 
 #### 1. auth-service (Port: 8080)
+**Lokacija**: `services/auth-service/`  
 **Odgovornost**: Autentifikacija, autorizacija i upravljanje korisničkim profilima
 
 **Funkcionalnosti**:
@@ -24,6 +39,7 @@ Aplikacija je implementirana kao **mikroservisna arhitektura** sa 5 nezavisnih s
 - `profiles` - korisnički profili
 
 #### 2. user-service (Port: 8081)
+**Lokacija**: `src/` (root projekat)  
 **Odgovornost**: Upravljanje relacijama između korisnika
 
 **Funkcionalnosti**:
@@ -39,34 +55,37 @@ Aplikacija je implementirana kao **mikroservisna arhitektura** sa 5 nezavisnih s
 - `blocks` - blokirani korisnici
 
 #### 3. post-service (Port: 8082)
+**Lokacija**: `post-service/`  
 **Odgovornost**: Upravljanje objavama i media fajlovima
 
 **Funkcionalnosti**:
 - Kreiranje, ažuriranje i brisanje objava
 - Upload slika i video fajlova
 - Validacija (max 20 elemenata, max 50MB po fajlu)
-- Upravljanje kolаžem (dodavanje/uklanjanje media fajlova)
+- Upravljanje kolažem (dodavanje/uklanjanje media fajlova)
 
 **Baza podataka**: `post_db` (PostgreSQL)
 - `posts` - objave
 - `post_media` - media fajlovi objava
 
-**File Storage**: Lokalni fajl sistem ili MinIO (S3-compatible)
+**File Storage**: MinIO (S3-compatible object storage), bucket `instagram-media`
 
 #### 4. interaction-service (Port: 8083)
-**Odgovornost**: Laјkovi i komentari na objave
+**Lokacija**: `interaction-service/`  
+**Odgovornost**: Lajkovi i komentari na objave
 
 **Funkcionalnosti**:
-- Laјkovanje/otpoziv laјka
-- Komentarisanje objavaa
+- Lajkovanje/otpoziv lajka
+- Komentarisanje objava
 - Ažuriranje i brisanje komentara
 - Brojači (likes, comments)
 
 **Baza podataka**: `interaction_db` (PostgreSQL)
-- `likes` - laјkovi objava
+- `likes` - lajkovi objava
 - `comments` - komentari objava
 
 #### 5. feed-service (Port: 8084)
+**Lokacija**: `feed-service/`  
 **Odgovornost**: Generisanje personalizovanog feeda
 
 **Funkcionalnosti**:
@@ -74,7 +93,29 @@ Aplikacija je implementirana kao **mikroservisna arhitektura** sa 5 nezavisnih s
 - Hronološko sortiranje (najnovije prvo)
 - Integracija sa drugim servisima za kompletan feed
 
-**Baza podataka**: `feed_db` (PostgreSQL) ili Redis za caching
+**Baza podataka**: `feed_db` (PostgreSQL)
+
+### Frontend Aplikacija (Port: 5173)
+**Lokacija**: `frontend/`  
+**Odgovornost**: Korisnički interfejs
+
+**Tehnologije**:
+- React 19 + React Router 7
+- Vite (build tool)
+- axios (HTTP klijent)
+- Nginx (serving u produkciji)
+
+**Stranice**: Login, Register, Home (feed), Profile, Search
+
+**Testiranje**: Vitest + Testing Library
+
+### Infrastruktura
+
+| Servis | Port | Opis |
+|--------|------|------|
+| MinIO | 9000 | Object storage za media fajlove |
+| MinIO Console | 9001 | Web UI za MinIO |
+| pgAdmin | 5051 | Web UI za PostgreSQL baze |
 
 ### Komunikacija između Servisa
 
@@ -93,21 +134,29 @@ Svi servisi komuniciraju preko **synchronous REST API** poziva:
 
 **Backend**:
 - Java 17
-- Spring Boot 4.0.1
+- Spring Boot 4.0.3
 - Spring Security (JWT autentifikacija)
 - Spring Data JPA
-- Postgresql
+- PostgreSQL 16
 - Lombok
 - Maven
 
+**Frontend**:
+- React 19
+- React Router 7
+- Vite
+- axios
+
 **DevOps**:
 - Docker & Docker Compose
-- CI/CD (GitHub Actions / GitLab CI)
+- MinIO (S3-compatible object storage)
+- CI/CD (GitHub Actions — `ci-main.yml`, `ci-pr.yml`)
 
 **Testing**:
 - JUnit 5
 - Mockito
-- JaCoCo (code coverage)
+- JaCoCo (code coverage — backend)
+- Vitest + Testing Library (frontend)
 
 ---
 
@@ -172,7 +221,7 @@ Svi servisi komuniciraju preko **synchronous REST API** poziva:
 8. post-service vraća 201 Created sa postId i detaljima
 ```
 
-### 4. Laјkovanje Objave
+### 4. Lajkovanje Objave
 
 ```
 1. Korisnik šalje POST /api/likes/{postId} + JWT
@@ -205,7 +254,7 @@ Svi servisi komuniciraju preko **synchronous REST API** poziva:
 4. Za svaki profil koji se prati:
    a. feed-service dohvata objave (preko post-service)
    b. Za svaku objavu:
-      - feed-service dohvata broj laјkova (preko interaction-service)
+      - feed-service dohvata broj lajkova (preko interaction-service)
       - feed-service dohvata poslednjih N komentara (preko interaction-service)
 5. feed-service filtrira objave blokiranih korisnika
 6. feed-service sortira objave po created_at DESC
@@ -226,7 +275,31 @@ Svi servisi komuniciraju preko **synchronous REST API** poziva:
 
 ---
 
+## 🚀 Pokretanje Aplikacije
 
+### Preduslovi
+- Docker & Docker Compose
+
+### Pokretanje
+
+```bash
+docker compose up --build
+```
+
+### Servisi nakon pokretanja
+
+| Servis | URL |
+|--------|-----|
+| Frontend | http://localhost:5173 |
+| auth-service | http://localhost:8080 |
+| user-service | http://localhost:8081 |
+| post-service | http://localhost:8082 |
+| interaction-service | http://localhost:8083 |
+| feed-service | http://localhost:8084 |
+| MinIO Console | http://localhost:9001 |
+| pgAdmin | http://localhost:5051 |
+
+---
 
 ## 👥 Članovi Tima
 

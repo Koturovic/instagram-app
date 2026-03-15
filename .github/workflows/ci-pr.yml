@@ -1,4 +1,4 @@
-# Pokreće unit testove na svaki pull request prema main
+# Pokreće unit testove na svaki kreirani/izmenjeni pull request
 name: CI - Pull Request
 
 on:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   test:
-    name: Unit tests (auth & user service)
+    name: Unit tests (all backend services)
     runs-on: ubuntu-latest
 
     steps:
@@ -33,4 +33,25 @@ jobs:
 
       - name: Run user-service tests
         working-directory: .
+        run: ./mvnw test -B
+
+      - name: Make post-service mvnw executable
+        run: chmod +x post-service/mvnw
+
+      - name: Run post-service tests
+        working-directory: post-service
+        run: ./mvnw test -B
+
+      - name: Make interaction-service mvnw executable
+        run: chmod +x interaction-service/mvnw
+
+      - name: Run interaction-service tests
+        working-directory: interaction-service
+        run: ./mvnw test -B
+
+      - name: Make feed-service mvnw executable
+        run: chmod +x feed-service/mvnw
+
+      - name: Run feed-service tests
+        working-directory: feed-service
         run: ./mvnw test -B
