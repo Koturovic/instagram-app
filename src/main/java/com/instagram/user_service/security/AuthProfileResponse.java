@@ -14,4 +14,5 @@ public class AuthProfileResponse {
     private Long userId;   // auth vraća Integer, Jackson mapira u Long
     private String username;
     private Boolean isPrivate;
+    private String profileImageUrl;
 }

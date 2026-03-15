@@ -108,7 +108,7 @@ class AuthServiceClientTest {
 
         @Test
         void when200AndBody_returnsAuthProfileResponse() {
-            AuthProfileResponse body = new AuthProfileResponse(10L, "user10", false);
+            AuthProfileResponse body = new AuthProfileResponse(10L, "user10", false, null);
             when(restTemplate.exchange(
                     eq("http://auth:8080/api/v1/auth/profiles/10"),
                     eq(HttpMethod.GET),

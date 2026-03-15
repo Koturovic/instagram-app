@@ -1,7 +1,10 @@
 package com.instagram.user_service.controller;
 
 import com.instagram.user_service.dto.CountResponse;
+import com.instagram.user_service.dto.FollowUserDto;
 import com.instagram.user_service.dto.FollowRequestResponse;
+import com.instagram.user_service.dto.RelationshipStatusDto;
+import com.instagram.user_service.dto.UserSearchResultDto;
 import com.instagram.user_service.security.CurrentUser;
 import com.instagram.user_service.service.FollowService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -32,6 +34,24 @@ public class UserController {
         return ResponseEntity.ok(new CountResponse(count));
     }
 
+    @GetMapping("/{userId}/followers")
+    public ResponseEntity<List<FollowUserDto>> getFollowers(@PathVariable Long userId) {
+        return ResponseEntity.ok(followService.getFollowers(userId));
+    }
+
+    @GetMapping("/{userId}/following")
+    public ResponseEntity<List<FollowUserDto>> getFollowing(@PathVariable Long userId) {
+        return ResponseEntity.ok(followService.getFollowing(userId));
+    }
+
+    @GetMapping("/relationship/{targetUserId}")
+    public ResponseEntity<RelationshipStatusDto> getRelationshipStatus(
+            @AuthenticationPrincipal CurrentUser currentUser,
+            @PathVariable Long targetUserId) {
+        Long currentUserId = currentUser != null ? currentUser.getUserId() : null;
+        return ResponseEntity.ok(followService.getRelationshipStatus(currentUserId, targetUserId));
+    }
+
     @PostMapping("/follow-request/{targetUserId}")
     public ResponseEntity<FollowRequestResponse> sendFollowRequest(
             @AuthenticationPrincipal CurrentUser currentUser,
@@ -46,6 +66,21 @@ public class UserController {
             @PathVariable Long requestId) {
         followService.acceptFollowRequest(currentUser.getUserId(), requestId);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/follow-request/{requestId}/reject")
+    public ResponseEntity<Void> rejectFollowRequest(
+            @AuthenticationPrincipal CurrentUser currentUser,
+            @PathVariable Long requestId) {
+        followService.rejectFollowRequest(currentUser.getUserId(), requestId);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/follow-requests/pending")
+    public ResponseEntity<List<?>> getPendingFollowRequests(
+            @AuthenticationPrincipal CurrentUser currentUser) {
+        List<?> requests = followService.getPendingFollowRequests(currentUser.getUserId());
+        return ResponseEntity.ok(requests);
     }
 
     @DeleteMapping("/following/{targetUserId}")
@@ -73,10 +108,13 @@ public class UserController {
     }
 
     /**
-     * Placeholder: pretraga (vraća praznu listu). Kasnije: poziv auth-service search + filter po block listi.
+     * Pretraga korisnika preko auth-service.
      */
     @GetMapping("/search")
-    public ResponseEntity<List<?>> search(@RequestParam(defaultValue = "") String q) {
-        return ResponseEntity.ok(Collections.emptyList());
+    public ResponseEntity<List<UserSearchResultDto>> search(
+            @AuthenticationPrincipal CurrentUser currentUser,
+            @RequestParam(defaultValue = "") String q) {
+        Long currentUserId = currentUser != null ? currentUser.getUserId() : null;
+        return ResponseEntity.ok(followService.searchUsers(q, currentUserId));
     }
 }

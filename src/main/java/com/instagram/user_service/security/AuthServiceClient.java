@@ -1,13 +1,18 @@
 package com.instagram.user_service.security;
 
+import com.instagram.user_service.dto.UserSearchResultDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import com.instagram.user_service.exception.ProfileNotFoundException;
+
+import java.util.List;
 
 /**
  * Calls Auth service to validate the token.
@@ -23,6 +28,7 @@ public class AuthServiceClient {
 
     private static final String VALIDATE_PATH = "/api/v1/auth/validate";
     private static final String PROFILES_PATH = "/api/v1/auth/profiles";
+    private static final String PROFILES_SEARCH_PATH = "/api/v1/auth/profiles/search";
 
     private final AuthServiceProperties authServiceProperties;
     private final RestTemplate restTemplate;
@@ -98,6 +104,32 @@ public class AuthServiceClient {
             throw new ProfileNotFoundException("Could not fetch profile");
         }
         throw new ProfileNotFoundException("Could not fetch profile");
+    }
+
+    public List<UserSearchResultDto> searchProfiles(String q) {
+        String baseUrl = authServiceProperties.getServiceUrl().replaceAll("/$", "");
+        String url = UriComponentsBuilder
+                .fromUriString(baseUrl + PROFILES_SEARCH_PATH)
+                .queryParam("q", q == null ? "" : q)
+                .toUriString();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<List<UserSearchResultDto>> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                entity,
+                new ParameterizedTypeReference<List<UserSearchResultDto>>() {
+                }
+        );
+
+        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+            return response.getBody();
+        }
+
+        return List.of();
     }
 
     public static class TokenInvalidException extends RuntimeException {
