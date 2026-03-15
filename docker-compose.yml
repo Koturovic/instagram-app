@@ -228,6 +228,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: password
       AUTH_SERVICE_URL: http://auth-service:8080
       APP_POST_SERVICE_URL: http://post-service:8082
+      APP_USER_SERVICE_URL: http://user-service:8081/api/v1/users
     ports:
       - "8083:8083"
     networks:
@@ -293,12 +294,7 @@ services:
     depends_on:
       - minio
     entrypoint: >
-      /bin/sh -c "
-      mc alias set local http://minio:9000 admin password &&
-      mc mb -p local/instagram-media || true &&
-      mc anonymous set download local/instagram-media &&
-      exit 0
-      "
+      /bin/sh -c " mc alias set local http://minio:9000 admin password && mc mb -p local/instagram-media || true && mc anonymous set download local/instagram-media && exit 0 "
     networks:
       - instagram-network
 

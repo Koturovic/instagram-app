@@ -8,7 +8,7 @@ on:
 
 jobs:
   test-and-push:
-    name: Test, Build & Push Docker Image
+    name: Test, Build & Push Docker Images
     runs-on: ubuntu-latest
 
     steps:
@@ -36,6 +36,27 @@ jobs:
 
       - name: Run user-service tests
         working-directory: .
+        run: ./mvnw test -B
+
+      - name: Make post-service mvnw executable
+        run: chmod +x post-service/mvnw
+
+      - name: Run post-service tests
+        working-directory: post-service
+        run: ./mvnw test -B
+
+      - name: Make interaction-service mvnw executable
+        run: chmod +x interaction-service/mvnw
+
+      - name: Run interaction-service tests
+        working-directory: interaction-service
+        run: ./mvnw test -B
+
+      - name: Make feed-service mvnw executable
+        run: chmod +x feed-service/mvnw
+
+      - name: Run feed-service tests
+        working-directory: feed-service
         run: ./mvnw test -B
 
       # 2. Verzija u formatu yyyymmdd-hhmmss
@@ -69,3 +90,33 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/user-service:${{ steps.tag.outputs.value }}
             ${{ secrets.DOCKER_USERNAME }}/user-service:latest
+
+      # 6. Build i push post-service image
+      - name: Build and push post-service
+        uses: docker/build-push-action@v6
+        with:
+          context: ./post-service
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/post-service:${{ steps.tag.outputs.value }}
+            ${{ secrets.DOCKER_USERNAME }}/post-service:latest
+
+      # 7. Build i push interaction-service image
+      - name: Build and push interaction-service
+        uses: docker/build-push-action@v6
+        with:
+          context: ./interaction-service
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/interaction-service:${{ steps.tag.outputs.value }}
+            ${{ secrets.DOCKER_USERNAME }}/interaction-service:latest
+
+      # 8. Build i push feed-service image
+      - name: Build and push feed-service
+        uses: docker/build-push-action@v6
+        with:
+          context: ./feed-service
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/feed-service:${{ steps.tag.outputs.value }}
+            ${{ secrets.DOCKER_USERNAME }}/feed-service:latest
